@@ -1,0 +1,1873 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Graph Net</title>
+<meta name="description" content="Breadth-first search, depth-first search and Dijkstra on a 3D net of strings. Build a graph, pick a start and a target, and watch the net lift off its plinth in order of distance.">
+<link rel="stylesheet" href="../shared/tokens.css">
+<style>
+/* ---------- Graphs: setup card ---------- */
+#setup{order:1;padding:14px;display:flex;flex-direction:column;gap:12px}
+.seg{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:2px;padding:3px;border-radius:12px;background:rgba(27,26,23,.06)}
+.seg button{height:38px;border:0;border-radius:9px;background:transparent;color:var(--graphite);font-size:13px;font-weight:600;padding:0 4px}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+#racePick{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;color:var(--graphite)}
+#racePick select{flex:1}
+.sel3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.sel3.shuffle{grid-template-columns:minmax(0,.8fr) minmax(0,.8fr) minmax(0,1.4fr)}
+select{height:40px;border-radius:10px;border:1px solid var(--line-strong);background:#fff;font:600 14px var(--sans);color:var(--ink);padding:0 6px;min-width:0;width:100%}
+#selTarget.has{border-color:var(--red)}
+.prow2{display:flex;gap:6px}
+#bShuffle{width:40px;height:40px;border-radius:10px;flex:none}
+.tools{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.tools .btn{height:36px;padding:0 10px;border-radius:9px;font-size:13px}
+.tools .toggle{margin-left:auto;font-size:13px;color:var(--graphite);gap:7px}
+.tools .toggle input{width:18px;height:18px}
+#hint{font-size:12.5px;line-height:1.4;color:var(--graphite);margin:-4px 2px 0;min-height:1.4em}
+#hint.err{color:#B02A15}
+
+/* ---------- right column: inspector, data structure, about ---------- */
+#side{position:fixed;z-index:2;right:24px;top:84px;bottom:112px;width:256px;display:flex;flex-direction:column;gap:12px;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none;pointer-events:none}
+#side::-webkit-scrollbar{display:none}
+#side>*{pointer-events:auto;flex:none}
+@media (min-width:761px){ #side #inspector{position:static;width:auto} }
+#ds,#score{padding:14px;display:flex;flex-direction:column;gap:10px}
+.dsv{display:flex;flex-direction:column;gap:9px;min-width:0}
+.dsv+.dsv{padding-top:10px;border-top:1px solid var(--line)}
+.ds-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.ds-head .eyebrow{color:var(--ink)}
+.ds-sub{font-size:12px;color:var(--graphite);white-space:nowrap}
+.ds-wrap{display:flex;flex-direction:column;gap:6px;min-width:0}
+.ds-wrap.queue{flex-direction:row;align-items:center;gap:6px}
+.qend{display:none;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);flex:none}
+.ds-wrap.queue .qend{display:block}
+.dsl{position:relative;display:flex;flex-direction:column;gap:6px;min-width:0;flex:1}
+.queue .dsl{flex-direction:row;flex-wrap:wrap;align-items:center;gap:5px}
+.dsi{display:flex;align-items:center;gap:10px;padding:6px 10px;border-radius:12px;border:1px solid var(--line);background:#fff;font-variant-numeric:tabular-nums;will-change:transform}
+.dsi svg{flex:none;display:block}
+.dsi .k{flex:1;display:flex;flex-direction:column;min-width:0}
+.dsi .k b{font-size:18px;line-height:1.15}
+.dsi .k span{font-size:11px;color:var(--graphite);white-space:nowrap}
+.dsi .k s{color:var(--red)}
+.dsi em{font-style:normal;font-size:10.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--cobalt)}
+.dsi.first{border:2px solid var(--cobalt);padding:5px 9px}
+.queue .dsi{padding:2px 8px 2px 2px;gap:5px;border-radius:15px}
+.queue .dsi b{font-size:13px}
+.qdiv{width:3px;height:22px;border-radius:2px;background:var(--yellow);flex:none}
+.ds-empty{font-size:12.5px;color:var(--faint)}
+.ds-empty:empty,.ds-more:empty{display:none}
+.ds-more{font-size:12px;color:var(--graphite)}
+.ds-done{display:flex;flex-direction:column;gap:6px}
+.ds-rule{height:1px;background:var(--line)}
+.donel{display:flex;gap:5px;flex-wrap:wrap}
+.dchip{height:26px;padding:0 9px;border-radius:13px;background:var(--ink);color:var(--paper);font-size:12.5px;font-weight:700;display:inline-flex;align-items:center;gap:5px;font-variant-numeric:tabular-nums}
+.dchip.now{background:var(--cobalt);color:#fff}
+.dchip.more{background:transparent;color:var(--graphite);border:1px solid var(--line-strong)}
+.ds-note{font-size:12px;line-height:1.4;color:var(--graphite)}
+.dsv.race .ds-done,.dsv.race .ds-sub{display:none}
+#about{padding:14px;display:flex;flex-direction:column;gap:7px;background:rgba(248,245,238,.9)}
+#about p{margin:0;font-size:12.5px;line-height:1.45}
+#about i{font:italic 14px var(--serif)}
+#aboutRun{color:var(--graphite);font-variant-numeric:tabular-nums}
+.srow{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;align-items:baseline}
+.srow b{font-size:13px}
+.srow span{font-size:12.5px;color:var(--graphite);font-variant-numeric:tabular-nums}
+.srow .won{color:var(--cobalt);font-weight:700}
+#flyLayer{position:fixed;inset:0;pointer-events:none;z-index:5}
+
+/* inspector extras */
+.ins-nb{display:flex;flex-direction:column;gap:5px}
+.ins-nb .lab{font-size:11px;color:var(--graphite)}
+.nbl{display:flex;gap:5px;flex-wrap:wrap}
+.nb{height:26px;padding:0 9px;border-radius:13px;border:1px solid var(--line-strong);font-size:12.5px;font-weight:700;display:inline-flex;align-items:center;gap:4px;font-variant-numeric:tabular-nums}
+.nb i{font-style:normal;font-weight:600;color:var(--graphite)}
+.ins-act{display:flex;gap:6px;flex-wrap:wrap}
+.ins-act .btn{height:34px;font-size:12.5px;padding:0 10px;border-radius:9px}
+
+/* weight popover */
+#wpop{position:fixed;z-index:6;left:0;top:0;width:220px;padding:12px;display:flex;flex-direction:column;gap:8px;margin:0}
+#wpop label{font-size:12px;font-weight:600;color:var(--graphite)}
+#wpop .row{display:flex;gap:6px}
+#wval{height:40px;border-radius:10px;border:1px solid var(--line-strong);background:#fff;padding:0 10px;font:600 17px var(--sans);font-variant-numeric:tabular-nums;color:var(--ink);width:100%;min-width:0}
+#wval[aria-invalid="true"]{border-color:var(--red)}
+#wpop .btn.primary{height:40px;padding:0 14px}
+#werr{font-size:12px;line-height:1.35;color:#B02A15}
+#werr:empty{display:none}
+
+/* legend */
+#legend{position:fixed;z-index:2;right:188px;top:24px;height:44px;padding:0 16px 0 12px;border-radius:22px;display:flex;align-items:center;gap:14px}
+.lg{display:flex;align-items:center;gap:6px}
+.lg svg{flex:none}
+.lg b{display:block;font-size:12.5px;white-space:nowrap}
+.lg span{display:block;font-size:12px;color:var(--graphite)}
+#legend .lg span{display:none}
+#help .lgwrap{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 12px}
+@media (max-width:1380px){ #legend{display:none} }
+@media (max-width:1180px) and (min-width:761px){ #side{width:230px} }
+
+/* ---------- phone ---------- */
+@media (max-width:760px){
+  #setup{order:4;padding:0;gap:8px}
+  .seg button{height:40px}
+  .tools{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin:0 -14px;padding:0 14px}
+  .tools::-webkit-scrollbar{display:none}
+  .tools .btn{height:40px;flex:none}
+  .tools .toggle{flex:none;margin-left:4px}
+  #side{position:static;width:auto;overflow:visible;display:contents}
+  #ds{order:3;padding:0;gap:6px}
+  #score{order:3;padding:0;gap:4px}
+  #about{order:5;padding:0;background:transparent}
+  .dsv{gap:5px}
+  .dsv+.dsv{padding-top:6px}
+  .ds-head{justify-content:flex-start}
+  .ds-wrap,.ds-wrap.queue{flex-direction:row;align-items:center;gap:6px}
+  .dsl,.queue .dsl{flex-direction:row;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;gap:5px;padding:2px 0}
+  .dsl::-webkit-scrollbar{display:none}
+  .dsi,.dsi.first{padding:2px 8px 2px 2px;gap:5px;border-radius:15px;flex:none}
+  .dsi.first{border-width:2px}
+  .dsi svg{width:24px;height:24px}
+  .dsi .k{flex-direction:row;align-items:baseline;gap:4px}
+  .dsi .k b{font-size:13px}
+  .dsi .k span,.dsi em{display:none}
+  .ds-done,.qend{display:none!important}
+  #wpop{left:12px!important;right:12px;top:calc(62px + env(safe-area-inset-top,0px))!important;width:auto}
+  #insNb,#inspector .ins-grid{display:none}
+  #inspector .ins-top{gap:12px}
+  #insDisc svg{width:40px;height:40px}
+  .ins-act .btn{height:40px}
+}
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<canvas id="stage" tabindex="-1" aria-label="A graph drawn as a net of strings on a plinth. Use the controls to run breadth-first search, depth-first search or Dijkstra's algorithm."></canvas>
+<div id="callout" aria-hidden="true"></div>
+<div id="flyLayer" aria-hidden="true"></div>
+
+<aside id="dock" aria-label="Controls">
+  <header id="masthead">
+    <div class="eyebrow">3D Data Structures · No. 2</div>
+    <h1>Graph Net</h1>
+    <div id="mstats" class="eyebrow"></div>
+    <p class="sub">Breadth-first, depth-first and Dijkstra on a net of strings. Lift the start knot and the net leaves the plinth in order of distance.</p>
+  </header>
+
+  <section id="setup" class="card" aria-label="Algorithm and graph">
+    <div class="seg" id="algoSeg" role="group" aria-label="Algorithm">
+      <button type="button" data-a="bfs" aria-pressed="false">BFS</button>
+      <button type="button" data-a="dfs" aria-pressed="false">DFS</button>
+      <button type="button" data-a="dijkstra" aria-pressed="true">Dijkstra</button>
+      <button type="button" data-a="race" aria-pressed="false">Race</button>
+    </div>
+    <div id="racePick" hidden>
+      <select id="raceA" aria-label="Back plinth"><option value="bfs">BFS</option><option value="dfs">DFS</option><option value="dijkstra">Dijkstra</option></select>
+      <span>vs</span>
+      <select id="raceB" aria-label="Front plinth"><option value="bfs">BFS</option><option value="dfs">DFS</option><option value="dijkstra">Dijkstra</option></select>
+    </div>
+    <div class="sel3" id="sel3">
+      <div class="field"><label for="selStart">Start</label><select id="selStart"></select></div>
+      <div class="field"><label for="selTarget">Target</label><select id="selTarget"></select></div>
+      <div class="field"><label for="selPreset">Graph</label><div class="prow2"><select id="selPreset"></select><button class="icon" id="bShuffle" type="button" aria-label="Shuffle this random graph" hidden><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3.5"/><circle cx="9" cy="9" r="1.1" fill="currentColor"/><circle cx="15" cy="15" r="1.1" fill="currentColor"/><circle cx="15" cy="9" r="1.1" fill="currentColor"/><circle cx="9" cy="15" r="1.1" fill="currentColor"/></svg></button></div></div>
+    </div>
+    <div class="tools" id="toolRow" role="group" aria-label="Edit the graph">
+      <button class="btn" type="button" data-t="move" aria-pressed="true">Move</button>
+      <button class="btn" type="button" data-t="node" aria-pressed="false">+ Node</button>
+      <button class="btn" type="button" data-t="edge" aria-pressed="false">+ Edge</button>
+      <button class="btn" type="button" data-t="delete" aria-pressed="false">Delete</button>
+      <label class="toggle"><input type="checkbox" id="optDirected"> Directed</label>
+    </div>
+    <div id="hint" role="status"></div>
+  </section>
+
+  <section id="placard" class="card" aria-live="polite">
+    <div class="prow"><span class="eyebrow" id="opname">Graph Net</span><span class="eyebrow" id="stepno"></span></div>
+    <div id="head"></div>
+    <div id="body"></div>
+    <div id="chips"></div>
+  </section>
+
+  <div id="transport"></div>
+</aside>
+
+<div id="side">
+  <aside id="inspector" class="card" hidden aria-label="Selected knot">
+    <div class="prow"><span class="eyebrow">Selected knot</span><button class="x" id="insClose" type="button" aria-label="Close">×</button></div>
+    <div class="ins-top"><span id="insDisc"></span><div id="insState"></div></div>
+    <div class="ins-grid">
+      <div><div id="insK1">Distance</div><div id="insV1"></div></div>
+      <div><div>Parent</div><div id="insV2"></div></div>
+    </div>
+    <div class="ins-nb" id="insNb"></div>
+    <div class="ins-act">
+      <button class="btn" id="insStart" type="button">Start here</button>
+      <button class="btn" id="insTarget" type="button">Make target</button>
+      <button class="btn quiet" id="insDel" type="button">Delete</button>
+    </div>
+  </aside>
+  <section id="score" class="card" aria-label="Race" hidden></section>
+  <section id="ds" class="card" aria-label="Data structure" aria-live="off"></section>
+  <section id="about" class="card" aria-label="About this algorithm"></section>
+</div>
+
+<div id="tools">
+  <button class="icon" id="bSound" type="button" aria-pressed="true" aria-label="Sound"><svg class="snd-on" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9 L8 9 L13 5 L13 19 L8 15 L4 15 Z"/><path d="M16.5 9 A4 4 0 0 1 16.5 15"/><path d="M19 6.5 A7.5 7.5 0 0 1 19 17.5"/></svg><svg class="snd-off" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9 L8 9 L13 5 L13 19 L8 15 L4 15 Z"/><path d="M17 9.5 L22 14.5 M22 9.5 L17 14.5"/></svg></button>
+  <button class="icon" id="bFrame" type="button" aria-label="Reset view"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9 L4 4 L9 4"/><path d="M15 4 L20 4 L20 9"/><path d="M20 15 L20 20 L15 20"/><path d="M9 20 L4 20 L4 15"/><circle cx="12" cy="12" r="2.2"/></svg></button>
+  <button class="icon" id="bHelp" type="button" aria-label="How to read the net"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.3 A2.5 2.5 0 1 1 12 12.4 L12 13.8"/><path d="M12 17 L12 17.1"/></svg></button>
+</div>
+
+<aside id="legend" class="card" aria-label="Legend"></aside>
+
+<form id="wpop" class="card" hidden autocomplete="off" novalidate>
+  <label for="wval">Weight of <span id="wname"></span> (0–99)</label>
+  <div class="row">
+    <input id="wval" type="text" inputmode="numeric" enterkeyhint="done" maxlength="4" aria-describedby="werr">
+    <button class="btn primary" type="submit">Set</button>
+  </div>
+  <div id="werr" role="alert"></div>
+  <div class="row"><button class="btn quiet" id="wDel" type="button">Delete string</button><button class="btn quiet" id="wClose" type="button">Close</button></div>
+</form>
+
+<div id="help" hidden role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+  <div class="card">
+    <div class="prow"><h2 id="helpTitle">How to read the net</h2><button class="x" id="helpClose" type="button" aria-label="Close">×</button></div>
+    <p><b>Each knot is a node and each string is an edge.</b> The number on a string is its weight. In Dijkstra it is also the string’s length; BFS and DFS ignore weights and count every string as one step.</p>
+    <div class="lgwrap" id="helpLegend"></div>
+    <p><b>The panel on the right is the lesson.</b> BFS keeps a queue, so it spreads in rings. DFS keeps a stack, drawn as one cobalt thread that dives and reels back. Dijkstra keeps a priority queue that always hands out the cheapest ticket.</p>
+    <p><b>The lift.</b> Hold the start knot by a wire and raise it. A knot leaves the plinth only when the strings on its cheapest route are pulled straight, so knots lift off in order of distance and each hangs exactly its distance below the start. The taut strings are the shortest-path tree.</p>
+    <div class="keys">Drag to orbit · scroll or pinch to zoom · right-drag or two fingers to pan.<br>With <b>Move</b>, drag a knot, click a knot to inspect it, or click a weight to change it.<br><kbd>Space</kbd> play or pause · <kbd>←</kbd> <kbd>→</kbd> step · <kbd>?</kbd> this card · <kbd>Esc</kbd> close</div>
+  </div>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { createStage, plasterTexture, createFramer, isPhone, REDUCED } from '../shared/stage.js';
+import { GLYPH, glyphLayout, glyphWidth, glyphSVG } from '../shared/glyphs.js';
+import { Player, readingHold } from '../shared/player.js';
+import { mountTransport, placard, bindKeys, bindHelp, calloutPlacer } from '../shared/controls.js';
+import { Sound, bindSoundToggle } from '../shared/sound.js';
+import { mountNav } from '../shared/nav.js';
+import { Graph, ALGOS, PRESETS, RUN, ticksOf, checkWeight, MAX_NODES } from './algo.js';
+
+/* =====================================================================
+   1. Constants and small helpers
+   ===================================================================== */
+const R = 0.4;          // disc radius
+const PEG = 0.2;        // knot to the bottom of the disc
+const KNOT = 0.065;     // knot radius, where the strings are tied
+const PH = 0.55;        // plinth height (its top is y = 0)
+const MARGIN = 1.25;    // plinth margin around the knots
+const L0 = 0.42;        // how far a knot rises when it leaves the plinth
+const LIFT_MAX = 5.2;   // the start's height above the last lifted knot at the end of a lift
+const PHI_FLAT = 0.84, PHI_LIFT = 1.17; // camera polar angle for a flat net and a lifted one
+const REGION = { x: 14, z: 8.5 };       // knots stay inside this area
+
+const RGB = h => [((h >> 16) & 255) / 255, ((h >> 8) & 255) / 255, (h & 255) / 255];
+const COL = {
+  paper: RGB(0xF8F5EE), ink: RGB(0x1B1A17), graphite: RGB(0x57524A), faint: RGB(0x8C857A), string: RGB(0x837B6F),
+  yellow: RGB(0xE8A817), yellowDeep: RGB(0xC48A0A), red: RGB(0xD1361E), cobalt: RGB(0x2346A8), cobaltDeep: RGB(0x172F78),
+  light: RGB(0xEFE8DA), white: [1, 1, 1],
+};
+const STATE = {
+  unseen: { fill: COL.paper, glyph: COL.ink, rim: COL.ink, rimW: 0.036 },
+  wait: { fill: COL.yellow, glyph: COL.ink, rim: COL.yellowDeep, rimW: 0.02 },
+  active: { fill: COL.cobalt, glyph: COL.white, rim: COL.cobaltDeep, rimW: 0.02 },
+  done: { fill: COL.ink, glyph: COL.light, rim: COL.ink, rimW: 0.02 },
+};
+const HEXOF = { unseen: '#F8F5EE', wait: '#E8A817', active: '#2346A8', done: '#1B1A17' };
+const GLYHEX = { unseen: '#1B1A17', wait: '#1B1A17', active: '#FFFFFF', done: '#EFE8DA' };
+
+const clamp01 = x => (x < 0 ? 0 : x > 1 ? 1 : x);
+const lerp = (a, b, t) => a + (b - a) * t;
+const seg = (t, a, b) => clamp01((t - a) / (b - a));
+const smooth = (a, b, t) => { const x = seg(t, a, b); return x * x * (3 - 2 * x); };
+const easeInOut = t => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+const easeOut = t => 1 - Math.pow(1 - t, 3);
+const bounce = t => { const n = 7.5625, d = 2.75; if (t < 1 / d) return n * t * t; if (t < 2 / d) return n * (t -= 1.5 / d) * t + 0.75; if (t < 2.5 / d) return n * (t -= 2.25 / d) * t + 0.9375; return n * (t -= 2.625 / d) * t + 0.984375; };
+const mix3 = (a, b, t) => (a === b || t <= 0 ? a : t >= 1 ? b : [lerp(a[0], b[0], t), lerp(a[1], b[1], t), lerp(a[2], b[2], t)]);
+const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
+const $ = id => document.getElementById(id);
+
+/* =====================================================================
+   2. Poses. A pose is a plain description of everything on the plinths
+      at one instant. Each step of an algorithm becomes pose(t), t in
+      [0, 1]; stepping back plays the same function in reverse.
+   ===================================================================== */
+const DUR = { start: 0.8, dequeue: 0.55, discover: 0.55, skip: 0.32, found: 1.8, done: 0.7, lift: 3.4, dive: 0.6, back: 0.5, extract: 1.0, improve: 0.72, keep: 0.5, path: 2.4, unreachable: 1.0 };
+const FOCUS_EDGE = new Set(['discover', 'skip', 'dive', 'back', 'improve', 'keep']);
+const PAYOFF = new Set(['found', 'path', 'lift']);
+const KEY_KIND = { bfs: new Set(['dequeue']), dfs: new Set(['start', 'dive']), dijkstra: new Set(['extract']) };
+
+function plinthOf(g) {
+  if (!g.size) return { cx: 0, cz: 0, w: 8, d: 5 };
+  let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
+  for (const n of g.nodes.values()) { x0 = Math.min(x0, n.x); x1 = Math.max(x1, n.x); z0 = Math.min(z0, n.z); z1 = Math.max(z1, n.z); }
+  const w = Math.max(6, x1 - x0 + 2 * MARGIN), d = Math.max(4.2, z1 - z0 + 2 * MARGIN);
+  return { cx: (x0 + x1) / 2, cz: (z0 + z1) / 2, w, d };
+}
+// Race: two plinths, one behind the other, centred on the origin.
+const RACE_GAP = 1.0;
+function raceOffsets(pl) { return [{ ox: -pl.cx, oz: -RACE_GAP - pl.cz - pl.d / 2 }, { ox: -pl.cx, oz: RACE_GAP - pl.cz + pl.d / 2 }]; }
+
+// one net = one plinth with one algorithm on it
+function makeCtx(g, algo, j, count, gen) {
+  const hasStart = g.nodes.has(ui.start);
+  let steps = hasStart ? RUN[algo](g, ui.start, ui.target) : [];
+  if (count > 1) steps = steps.filter(s => s.kind !== 'lift');
+  let HS = 0, unit = 0;
+  if (algo === 'dijkstra') { const T = Math.max(0, ...steps.map(s => s.tau)); HS = T > 0 ? (LIFT_MAX * (count > 1 ? 0.6 : 1)) / T : 0; }
+  else if (algo === 'bfs') { const lift = steps.find(s => s.kind === 'lift'); const T = lift ? lift.tau : 0; HS = T > 0 ? Math.min(1.9, LIFT_MAX / T) : 0; unit = 1; }
+  const plinth = plinthOf(g);
+  const { ox, oz } = count > 1 ? raceOffsets(plinth)[j] : { ox: 0, oz: 0 };
+  return {
+    key: 'n' + j, j, gen, g, algo, steps, HS, unit, plinth, ox, oz,
+    start: hasStart ? ui.start : null, target: hasStart ? ui.target : null,
+    title: count > 1 ? ALGOS[algo].name.toUpperCase() : '',
+    pace: g.size > 30 ? 0.7 : 1,
+    ticks: count > 1 ? ticksOf(steps, algo) : null,
+    statics: [], trs: [],
+  };
+}
+const nkey = (ctx, id) => `${ctx.gen}:${id}`;
+const ekey = (ctx, id) => `${ctx.gen}:e${id}`;
+
+// The rest pose of one net after step i (i = -1: before the first step).
+function netStatic(ctx, i) {
+  const hit = ctx.statics[i + 1];
+  if (hit) return hit;
+  const step = i >= 0 ? ctx.steps[i] : null, g = ctx.g;
+  const nodes = new Map(), edges = new Map();
+  const reached = !!step && (step.kind === 'found' || step.kind === 'path' || (step.kind === 'lift' && step.path.length > 0));
+  let maxH = 0;
+  for (const n of g.nodes.values()) {
+    const st = step ? step.st[n.id] : 'unseen', S = STATE[st];
+    const d = step ? step.lifted[n.id] : undefined;
+    const h = d != null ? L0 + (step.tau - d) * ctx.HS : 0;
+    maxH = Math.max(maxH, h);
+    let tag = null, tagSt = 'done';
+    if (step) {
+      if (ctx.algo === 'dijkstra') { tag = String(step.tag[n.id]); tagSt = st === 'unseen' ? 'inf' : st === 'wait' ? 'wait' : 'done'; }
+      else if (step.tag[n.id] != null) { tag = String(step.tag[n.id]); tagSt = st === 'wait' ? 'wait' : 'done'; }
+    }
+    const k = nkey(ctx, n.id);
+    nodes.set(k, {
+      key: k, id: n.id, label: n.label, x: n.x, z: n.z, h, s: 1,
+      fill: S.fill, glyph: S.glyph, rim: S.rim, rimW: S.rimW,
+      halo: st === 'active' ? 1 : 0, tgt: n.id === ctx.target ? 1 : 0, tgtSolid: reached && n.id === ctx.target ? 1 : 0,
+      hook: n.id === ctx.start ? 1 : 0, tag, tagA: tag != null ? 1 : 0, tagSt,
+    });
+  }
+  // the DFS thread follows the stack; the payoff route follows the path
+  const thread = new Map(), route = new Map();
+  if (step && ctx.algo === 'dfs') for (let k = 1; k < step.ds.length; k++) { const e = g.findEdge(step.ds[k - 1].id, step.ds[k].id); if (e) thread.set(e.id, step.ds[k - 1].id); }
+  if (step && step.pathEdges && step.pathEdges.length) for (let k = 1; k < step.path.length; k++) { const e = g.findEdge(step.path[k - 1], step.path[k]); if (e) route.set(e.id, step.path[k - 1]); }
+  for (const e of g.edges.values()) {
+    const tree = !!step && (step.parent[e.b] === e.a || (!g.directed && step.parent[e.a] === e.b));
+    const k = ekey(ctx, e.id);
+    edges.set(k, {
+      key: k, id: e.id, a: nkey(ctx, e.a), b: nkey(ctx, e.b), w: e.w, s: 1, wA: 1,
+      tree: tree ? 1 : 0, path: route.has(e.id) ? 1 : 0, pathFrom: nkey(ctx, route.has(e.id) ? route.get(e.id) : e.a),
+      thr: thread.has(e.id) ? 1 : 0, thrFrom: nkey(ctx, thread.has(e.id) ? thread.get(e.id) : e.a),
+      hl: step && step.edge === e.id && FOCUS_EDGE.has(step.kind) ? 1 : 0, dir: g.directed ? 1 : 0,
+    });
+  }
+  const lifted = maxH > 0 ? 1 : 0;
+  const net = {
+    key: ctx.key, gen: ctx.gen, algo: ctx.algo, title: ctx.title, startKey: ctx.start != null ? nkey(ctx, ctx.start) : null,
+    rulerText: `${ctx.algo === 'bfs' ? 'STRINGS' : 'DISTANCE'} FROM ${ctx.start != null ? g.label(ctx.start) : ''}`,
+    ox: ctx.ox, oz: ctx.oz, plinth: { ...ctx.plinth }, pa: 1, HS: ctx.HS, unit: ctx.unit, tau: step ? step.tau : 0,
+    wire: lifted, ruler: lifted, titleA: ctx.title ? 1 : 0,
+    nodes, edges, beads: [], ripples: [], ghosts: [],
+  };
+  ctx.statics[i + 1] = net;
+  return net;
+}
+
+function mixNode(a, b, k, kh) {
+  const same = a.tag === b.tag && a.tagSt === b.tagSt;
+  return {
+    key: b.key, id: b.id, label: b.label,
+    x: lerp(a.x, b.x, k), z: lerp(a.z, b.z, k), h: lerp(a.h, b.h, kh), s: lerp(a.s, b.s, k),
+    fill: mix3(a.fill, b.fill, k), glyph: mix3(a.glyph, b.glyph, k), rim: mix3(a.rim, b.rim, k), rimW: lerp(a.rimW, b.rimW, k),
+    halo: lerp(a.halo, b.halo, k), tgt: lerp(a.tgt, b.tgt, k), tgtSolid: lerp(a.tgtSolid, b.tgtSolid, k), hook: lerp(a.hook, b.hook, k),
+    tag: k < 0.5 ? a.tag : b.tag, tagSt: k < 0.5 ? a.tagSt : b.tagSt,
+    tagA: same ? lerp(a.tagA, b.tagA, k) : k < 0.5 ? a.tagA * (1 - 2 * k) : b.tagA * (2 * k - 1),
+  };
+}
+function mixEdge(a, b, k) {
+  const same = a.w === b.w;
+  return {
+    ...b, s: lerp(a.s, b.s, k), tree: lerp(a.tree, b.tree, k), path: lerp(a.path, b.path, k),
+    pathFrom: b.path > 0 ? b.pathFrom : a.pathFrom,
+    thr: a.thr > 0 && b.thr > 0 && a.thrFrom !== b.thrFrom ? b.thr : lerp(a.thr, b.thr, k),
+    thrFrom: b.thr > 0 ? b.thrFrom : a.thrFrom,
+    hl: lerp(a.hl, b.hl, k), dir: lerp(a.dir, b.dir, k),
+    w: k < 0.5 ? a.w : b.w, wA: same ? lerp(a.wA, b.wA, k) : k < 0.5 ? a.wA * (1 - 2 * k) : b.wA * (2 * k - 1),
+  };
+}
+const appearN = (n, k) => ({ ...n, s: n.s * k, tagA: n.tagA * k });
+const appearE = (e, k) => ({ ...e, s: e.s * k });
+function fadeNet(N, k) {
+  const nodes = new Map(), edges = new Map();
+  for (const [key, n] of N.nodes) nodes.set(key, appearN(n, k));
+  for (const [key, e] of N.edges) edges.set(key, appearE(e, k));
+  return { ...N, pa: N.pa * k, wire: N.wire * k, ruler: N.ruler * k, titleA: N.titleA * k, nodes, edges, beads: [], ripples: [], ghosts: [] };
+}
+// kf(key, 'n' | 'e') and hf(key) give per-item timing; otherwise everything moves together
+function mixNet(A, B, k, kf = null, hf = null) {
+  if (!A) return fadeNet(B, k);
+  if (!B) return fadeNet(A, 1 - k);
+  const nodes = new Map(), edges = new Map();
+  for (const [key, b] of B.nodes) {
+    const a = A.nodes.get(key), kk = kf ? kf(key, 'n') : k;
+    nodes.set(key, a ? mixNode(a, b, kk, hf ? hf(key) : kk) : appearN(b, kk));
+  }
+  for (const [key, a] of A.nodes) if (!B.nodes.has(key)) { const kk = kf ? kf(key, 'n') : k; nodes.set(key, { ...appearN(a, 1 - kk), h: a.h * (1 - kk) }); } // a knot that goes away sinks as it fades
+  for (const [key, b] of B.edges) {
+    const a = A.edges.get(key), kk = kf ? kf(key, 'e') : k;
+    edges.set(key, a ? mixEdge(a, b, kk) : appearE(b, kk));
+  }
+  for (const [key, a] of A.edges) if (!B.edges.has(key)) edges.set(key, appearE(a, 1 - (kf ? kf(key, 'e') : k)));
+  const pl = { cx: lerp(A.plinth.cx, B.plinth.cx, k), cz: lerp(A.plinth.cz, B.plinth.cz, k), w: lerp(A.plinth.w, B.plinth.w, k), d: lerp(A.plinth.d, B.plinth.d, k) };
+  return {
+    key: B.key, gen: B.gen, algo: B.algo, title: B.title || A.title, startKey: B.startKey, rulerText: B.rulerText,
+    ox: lerp(A.ox, B.ox, k), oz: lerp(A.oz, B.oz, k), plinth: pl, pa: lerp(A.pa, B.pa, k),
+    HS: lerp(A.HS, B.HS, k), unit: lerp(A.unit, B.unit, k), tau: lerp(A.tau, B.tau, k),
+    wire: lerp(A.wire, B.wire, k), ruler: lerp(A.ruler, B.ruler, k), titleA: lerp(A.titleA, B.titleA, k),
+    nodes, edges, beads: [], ripples: [], ghosts: [],
+  };
+}
+function pop(P, key, t, a, b, amt = 0.22) { const n = P.nodes.get(key); if (n) n.s *= 1 + amt * Math.sin(Math.PI * seg(t, a, b)); }
+const fadeInOut = (t, a, b, c, d) => smooth(a, b, t) * (1 - smooth(c, d, t));
+
+// The motion of one step on one net: { dur, pose(t) -> { net, callout, focus } }
+function netTr(ctx, i) {
+  if (ctx.trs[i]) return ctx.trs[i];
+  const s = ctx.steps[i], A = netStatic(ctx, i - 1), B = netStatic(ctx, i);
+  const L = id => ctx.g.label(id);
+  const nk = id => nkey(ctx, id), ek = id => ekey(ctx, id);
+  let dur = (DUR[s.kind] ?? 0.6) * ctx.pace;
+  let pose = t => ({ net: mixNet(A, B, easeInOut(t)) });
+  const toK = s.to != null ? nk(s.to) : null, eK = s.edge != null ? ek(s.edge) : null, fromK = s.from != null ? nk(s.from) : null;
+  switch (s.kind) {
+    case 'start': pose = t => {
+      const P = mixNet(A, B, easeInOut(seg(t, 0, 0.6)));
+      pop(P, nk(ctx.start), t, 0.1, 0.7);
+      const u = seg(t, 0.15, 1);
+      if (u > 0 && u < 1) P.ripples.push({ node: nk(ctx.start), r: R + 0.25 + u * 1.5, a: (1 - u) * 0.6, col: ctx.algo === 'dfs' ? COL.cobalt : COL.yellowDeep });
+      return { net: P };
+    }; break;
+    case 'dequeue': pose = t => {
+      const P = mixNet(A, B, easeInOut(seg(t, 0, 0.5)));
+      pop(P, nk(s.focus), t, 0, 0.5);
+      const u = seg(t, 0.1, 1);
+      if (u > 0 && u < 1) P.ripples.push({ node: nk(s.focus), r: R + 0.25 + u * 1.9, a: (1 - u) * 0.55, col: COL.yellowDeep });
+      return { net: P };
+    }; break;
+    case 'discover': pose = t => {
+      const kTo = smooth(0.55, 0.85, t), kE = smooth(0.05, 0.6, t), kD = easeInOut(seg(t, 0, 0.4));
+      const P = mixNet(A, B, kD, key => (key === toK ? kTo : key === eK ? kE : kD));
+      P.beads.push({ edge: eK, from: fromK, u: easeInOut(seg(t, 0, 0.6)), col: COL.yellowDeep, a: 1 - seg(t, 0.55, 0.68) });
+      pop(P, toK, t, 0.55, 0.95);
+      return { net: P, callout: { node: toK, text: `layer ${B.nodes.get(toK)?.tag}`, a: fadeInOut(t, 0.55, 0.7, 0.9, 1) } };
+    }; break;
+    case 'skip': pose = t => {
+      const P = mixNet(A, B, easeInOut(seg(t, 0, 0.5)));
+      P.beads.push({ edge: eK, from: fromK, u: 0.42 * Math.sin(Math.PI * t), col: COL.string, a: Math.sin(Math.PI * t), r: 0.075 });
+      return { net: P };
+    }; break;
+    case 'dive': pose = t => {
+      const kT = easeInOut(seg(t, 0, 0.7)), kTo = smooth(0.6, 0.85, t), kF = smooth(0, 0.3, t);
+      const P = mixNet(A, B, kF, key => (key === eK ? kT : key === toK ? kTo : kF));
+      pop(P, toK, t, 0.62, 1);
+      return { net: P };
+    }; break;
+    case 'extract': {
+      const first = s.focus === ctx.start, xK = nk(s.focus);
+      dur *= first ? 1.3 : 1;
+      pose = t => {
+        const kH = easeInOut(seg(t, first ? 0.45 : 0.05, 1)), kX = smooth(0.68, 1, t), kC = smooth(0, 0.3, t);
+        const P = mixNet(A, B, kC, null, key => (key === xK ? kX : kH));
+        P.tau = lerp(A.tau, B.tau, kH);
+        if (first) { P.wire = easeOut(seg(t, 0, 0.45)); P.ruler = smooth(0.4, 0.8, t); }
+        pop(P, xK, t, 0.68, 1, 0.16);
+        return { net: P, callout: { node: xK, text: `settled at ${s.tau}`, tone: 'cobalt', a: fadeInOut(t, 0.55, 0.7, 0.9, 1) }, lift: 1 };
+      };
+    } break;
+    case 'improve': pose = t => {
+      const kTo = smooth(0.48, 0.75, t), kE = smooth(0.1, 0.55, t);
+      const P = mixNet(A, B, kTo, key => (key === eK ? kE : kTo));
+      P.beads.push({ edge: eK, from: fromK, u: easeInOut(seg(t, 0, 0.5)), col: COL.cobalt, a: 1 - seg(t, 0.5, 0.62) });
+      if (s.old !== Infinity) P.ghosts.push({ node: toK, text: String(s.old), g: seg(t, 0.5, 0.95) });
+      pop(P, toK, t, 0.5, 0.9);
+      return { net: P, callout: { node: toK, text: s.old === Infinity ? `${s.nd} < ∞` : `${s.nd} < ${s.old}`, tone: 'cobalt', a: fadeInOut(t, 0.3, 0.45, 0.9, 1) } };
+    }; break;
+    case 'keep': pose = t => {
+      const P = mixNet(A, B, easeInOut(seg(t, 0, 0.5)));
+      const u = seg(t, 0, 0.6);
+      P.beads.push({ edge: eK, from: fromK, u: 0.88 * Math.sin(Math.PI / 2 * u), col: COL.string, a: 1 - seg(t, 0.6, 0.8), r: 0.08 });
+      return { net: P, callout: { node: toK, text: `${s.nd} ${s.nd === s.cur ? '=' : '>'} ${s.cur}`, a: fadeInOut(t, 0.35, 0.5, 0.9, 1) } };
+    }; break;
+    case 'found': case 'path': {
+      const pe = s.pathEdges || [], n = pe.length, tK = nk(s.focus);
+      const order = new Map(pe.map((id, k) => [ek(id), k]));
+      if (s.kind === 'found') dur = DUR.found * ctx.pace;
+      pose = t => {
+        const kB = easeInOut(seg(t, 0, 0.25));
+        const P = mixNet(A, B, kB, (key, type) => {
+          if (type === 'e' && order.has(key)) { const k = order.get(key); return smooth((k / n) * 0.72, ((k + 1) / n) * 0.72, t); }
+          if (key === tK) return smooth(0.7, 0.92, t);
+          return kB;
+        });
+        if (n && t < 0.8) {
+          const v = seg(t, 0, 0.72) * n, k = Math.min(n - 1, Math.floor(v));
+          P.beads.push({ edge: ek(pe[k]), from: nk(s.path[k]), u: Math.min(1, v - k), col: COL.cobalt, a: 1 - seg(t, 0.72, 0.8), r: 0.13 });
+        }
+        pop(P, tK, t, 0.7, 1, 0.25);
+        const route = s.kind === 'path' ? `${s.path.length > 1 ? s.path.map(L).join('→') + ' = ' : ''}${B.nodes.get(tK)?.tag ?? ''}` : plural(s.path.length - 1, 'string');
+        return { net: P, callout: { node: tK, text: route, tone: 'cobalt', a: fadeInOut(t, 0.72, 0.82, 0.93, 1) }, focus: { node: tK, w: fadeInOut(t, 0.1, 0.55, 0.85, 1) * 0.8 } };
+      };
+    } break;
+    case 'lift': {
+      const T = s.tau, sK = nk(ctx.start);
+      pose = t => {
+        const P = mixNet(A, B, smooth(0, 0.2, t), null, () => 1);
+        const v = (T + 0.4) * easeInOut(seg(t, 0.24, 1)), tau = Math.min(v, T);
+        for (const n of P.nodes.values()) {
+          const layer = s.lifted[n.id];
+          if (layer == null) { n.h = 0; continue; }
+          n.h = v <= layer ? 0 : L0 * smooth(0, 0.4, v - layer) + Math.max(0, tau - layer) * ctx.HS;
+        }
+        P.tau = tau; P.wire = easeOut(seg(t, 0, 0.22)); P.ruler = smooth(0.2, 0.4, t);
+        return { net: P, callout: { node: sK, text: 'lift', tone: 'cobalt', a: fadeInOut(t, 0.05, 0.12, 0.24, 0.3) } };
+      };
+    } break;
+    case 'unreachable': case 'done': {
+      const tK = s.kind === 'unreachable' || (s.kind === 'done' && ctx.target != null) ? nk(ctx.target) : null;
+      pose = t => {
+        const P = mixNet(A, B, easeInOut(t));
+        const n = tK && P.nodes.get(tK);
+        if (n) n.x += 0.09 * Math.sin(t * Math.PI * 7) * (1 - t);
+        return { net: P, callout: tK ? { node: tK, text: 'unreachable', tone: 'red', a: fadeInOut(t, 0.1, 0.25, 0.85, 1) } : null };
+      };
+    } break;
+  }
+  const tr = { dur, pose, kind: s.kind };
+  ctx.trs[i] = tr;
+  return tr;
+}
+
+// Race: one clock drives both plinths. Race step k plays tick k of each algorithm.
+const RACE_PACE = 0.7;
+function tickRange(ctx, k) { if (k >= ctx.ticks.length) return null; return [k ? ctx.ticks[k - 1] + 1 : 0, ctx.ticks[k]]; }
+function tickEnd(ctx, k) { return k < 0 ? -1 : ctx.ticks[Math.min(k, ctx.ticks.length - 1)]; }
+function raceTr(prog, k) {
+  const parts = prog.nets.map(ctx => {
+    const r = tickRange(ctx, k), list = [];
+    let D = 0;
+    if (r) for (let i = r[0]; i <= r[1]; i++) { const tr = netTr(ctx, i); const d = tr.dur * RACE_PACE; list.push({ tr, D0: D, d }); D += d; }
+    return { ctx, list, D };
+  });
+  const dur = Math.max(0.4, Math.min(2.2, Math.max(...parts.map(p => p.D))));
+  return {
+    dur,
+    pose(t) {
+      const nets = parts.map(p => {
+        if (!p.list.length) return netStatic(p.ctx, tickEnd(p.ctx, k));
+        const Lp = Math.min(p.D, dur), tt = Math.min(1, (t * dur) / Lp) * p.D;
+        const item = p.list.find(it => tt <= it.D0 + it.d) || p.list[p.list.length - 1];
+        return item.tr.pose(clamp01((tt - item.D0) / item.d)).net;
+      });
+      return { nets, callout: null, focus: null };
+    },
+  };
+}
+
+function buildTransition(prog, i) {
+  if (prog.mode === 'race') return raceTr(prog, i);
+  const tr = netTr(prog.nets[0], i);
+  return { dur: tr.dur, pose(t) { const r = tr.pose(t); return { nets: [r.net], callout: r.callout ? { ...r.callout, j: 0 } : null, focus: r.focus ? { ...r.focus, j: 0 } : null }; } };
+}
+function netsByKey(P) { const m = new Map(); for (const n of P.nets) m.set(n.key, n); return m; }
+function morph(P0, P1, dur = 0.6) {
+  const A = netsByKey(P0), B = netsByKey(P1), keys = [...new Set([...A.keys(), ...B.keys()])].sort();
+  return { dur, pose(t) { const k = easeInOut(t); return { nets: keys.map(key => mixNet(A.get(key), B.get(key), k)), callout: null, focus: null }; } };
+}
+// opening move: the knots drop onto the plinth, then the strings are tied
+function dropIn(P1) {
+  return {
+    dur: 1.9,
+    pose(t) {
+      const nets = P1.nets.map(N => {
+        const ids = [...N.nodes.keys()], n = ids.length;
+        const P = mixNet(N, N, 1);
+        ids.forEach((key, i) => {
+          const d = n > 1 ? (i / (n - 1)) * 0.45 : 0, u = seg(t, d, d + 0.4);
+          const node = P.nodes.get(key);
+          node.h = N.nodes.get(key).h + (1 - (REDUCED ? u : bounce(u))) * 3.4;
+          node.s *= Math.min(1, u * 4);
+        });
+        for (const e of P.edges.values()) e.s *= smooth(0.55, 0.95, t);
+        return P;
+      });
+      return { nets, callout: null, focus: null };
+    },
+  };
+}
+
+/* =====================================================================
+   3. Scene: the shared stage, a floor, and one plinth per algorithm
+   ===================================================================== */
+const canvas = $('stage');
+const stage = createStage({
+  canvas, background: 0xE2DACB, keyDir: [-0.38, 1, 0.5], cameraPos: [-3, 17, 22], target: [0, 0, 0],
+  controls: { minPolarAngle: 0.3, maxPolarAngle: 1.45, minAzimuthAngle: -1.4, maxAzimuthAngle: 1.4, minDistance: 5, maxDistance: 130 },
+});
+const { renderer, scene, camera, controls, key, pool, KEY_DIR } = stage;
+scene.fog = new THREE.Fog(0xE2DACB, 130, 320);
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(500, 500), new THREE.MeshStandardMaterial({ map: plasterTexture({ base: '#DCD3C3', repeat: [26, 26], seed: 11 }), roughness: 0.97, metalness: 0, envMapIntensity: 0.3 }));
+floor.rotation.x = -Math.PI / 2; floor.position.y = -PH; floor.receiveShadow = true;
+scene.add(floor);
+const plinths = [0, 1].map(() => {
+  const m = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshStandardMaterial({ color: 0xF7F3EB, roughness: 0.88, metalness: 0, envMapIntensity: 0.5 }));
+  m.castShadow = true; m.receiveShadow = true; m.visible = false;
+  scene.add(m);
+  return m;
+});
+
+const mat = (o = {}) => new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.45, metalness: 0.08, envMapIntensity: 0.55, ...o });
+const MAXN = 140, MAXR = 7000, MAXB = 700, MAXC = 440;
+const discGeo = new THREE.CylinderGeometry(R, R, 0.08, 40, 1); discGeo.rotateX(Math.PI / 2);
+const discs = new THREE.InstancedMesh(discGeo, mat({ roughness: 0.78, metalness: 0, envMapIntensity: 0.35 }), MAXN);
+const rods = new THREE.InstancedMesh(new THREE.CylinderGeometry(1, 1, 1, 6, 1), mat({ roughness: 0.5, metalness: 0.15 }), MAXR);
+const balls = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 12, 9), mat({ roughness: 0.4 }), MAXB);
+const coneGeo = new THREE.ConeGeometry(1, 1, 12); coneGeo.translate(0, -0.5, 0); // tip at the origin
+const cones = new THREE.InstancedMesh(coneGeo, mat(), MAXC);
+for (const m of [discs, rods, balls, cones]) {
+  m.castShadow = true; m.frustumCulled = false; m.count = 0;
+  m.setColorAt(0, new THREE.Color(0xffffff)); m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); m.instanceColor.setUsage(THREE.DynamicDrawUsage);
+  scene.add(m);
+}
+
+/* ---------- labels: every letter, number, pill and ring in one draw call ----------
+   Wire glyphs live in a small atlas; pills and rings are drawn as signed distances. */
+const ATLAS = {};
+const atlasTex = (() => {
+  const chars = Object.keys(GLYPH).filter(c => c !== ' ');
+  const C = 128, W = 1024, H = 1024, cols = W / C;
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+  const g = cv.getContext('2d');
+  g.strokeStyle = '#fff'; g.lineCap = 'round'; g.lineJoin = 'round'; g.lineWidth = 13;
+  chars.forEach((ch, i) => {
+    const x = (i % cols) * C, y = Math.floor(i / cols) * C;
+    g.save(); g.translate(x + 16, y + 16); g.scale(0.96, 0.96); g.stroke(new Path2D(GLYPH[ch])); g.restore();
+    ATLAS[ch] = [x / W, 1 - (y + C) / H, (x + C) / W, 1 - y / H];
+  });
+  const t = new THREE.CanvasTexture(cv);
+  t.minFilter = THREE.LinearMipmapLinearFilter; t.anisotropy = 4;
+  return t;
+})();
+const MAXL = 9000;
+class LabelBatch {
+  constructor() {
+    const g = new THREE.InstancedBufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute([-0.5, -0.5, 0, 0.5, -0.5, 0, 0.5, 0.5, 0, -0.5, 0.5, 0], 3));
+    g.setIndex([0, 1, 2, 0, 2, 3]);
+    this.size = { iPos: 3, iOff: 4, iPar: 4, iCol: 4, iMode: 2 };
+    this.attr = {}; this.stage = {};
+    for (const k in this.size) {
+      const a = new THREE.InstancedBufferAttribute(new Float32Array(MAXL * this.size[k]), this.size[k]);
+      a.setUsage(THREE.DynamicDrawUsage); g.setAttribute(k, a);
+      this.attr[k] = a; this.stage[k] = new Float32Array(MAXL * this.size[k]);
+    }
+    g.instanceCount = 0;
+    this.geo = g;
+    this.mesh = new THREE.Mesh(g, new THREE.ShaderMaterial({
+      uniforms: { map: { value: atlasTex } },
+      transparent: true, depthWrite: false, depthTest: true,
+      vertexShader: `
+        attribute vec3 iPos; attribute vec4 iOff; attribute vec4 iPar; attribute vec4 iCol; attribute vec2 iMode;
+        varying vec2 vUv; varying vec2 vQ; varying vec2 vHalf; varying vec4 vPar; varying vec4 vCol; varying float vMode;
+        void main() {
+          vec2 q = position.xy;
+          vec3 Rt, Up;
+          if (iMode.y > 0.5) { Rt = vec3(1.0, 0.0, 0.0); Up = vec3(0.0, 0.0, -1.0); }
+          else { Rt = vec3(viewMatrix[0][0], viewMatrix[1][0], viewMatrix[2][0]); Up = vec3(viewMatrix[0][1], viewMatrix[1][1], viewMatrix[2][1]); }
+          vec2 local = q * iOff.xy + iOff.zw;
+          vec3 p = iPos + Rt * local.x + Up * local.y;
+          if (iMode.y < 0.5) p += normalize(cameraPosition - iPos) * 0.09;
+          vHalf = iOff.xy * 0.5; vQ = q * iOff.xy;
+          vUv = mix(iPar.xy, iPar.zw, q + 0.5);
+          vPar = iPar; vCol = iCol; vMode = iMode.x;
+          gl_Position = projectionMatrix * viewMatrix * vec4(p, 1.0);
+        }`,
+      fragmentShader: `
+        uniform sampler2D map;
+        varying vec2 vUv; varying vec2 vQ; varying vec2 vHalf; varying vec4 vPar; varying vec4 vCol; varying float vMode;
+        float sdRR(vec2 p, vec2 b, float r) { vec2 q = abs(p) - b + vec2(r); return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r; }
+        float cover(float d) { float w = max(fwidth(d), 1e-5) * 0.8; return 1.0 - smoothstep(-w, w, d); }
+        void main() {
+          float a;
+          if (vMode < 0.5) a = texture2D(map, vUv).a;
+          else if (vMode < 1.5) { float r = min(vHalf.x, vHalf.y) * vPar.x; a = cover(sdRR(vQ, vHalf, r)); }
+          else if (vMode < 2.5) { float sw = vPar.y; float r = min(vHalf.x, vHalf.y) * vPar.x; a = cover(abs(sdRR(vQ, vHalf - vec2(sw * 0.5), max(0.0, r - sw * 0.5))) - sw * 0.5); }
+          else if (vMode < 3.5) {
+            float sw = vPar.y; float rad = vHalf.x - sw * 0.5;
+            a = cover(abs(length(vQ) - rad) - sw * 0.5);
+            if (vPar.z > 0.5) { float f = fract(atan(vQ.y, vQ.x) / 6.2831853 * vPar.z + vPar.w); float dw = max(fwidth(f), 1e-4) * 1.2; a *= smoothstep(0.0, dw, f) * (1.0 - smoothstep(0.56 - dw, 0.56, f)); }
+          } else { float d = abs(length(vQ) - vPar.y) / vPar.z; a = 1.0 - smoothstep(0.0, 1.0, d); }
+          gl_FragColor = vec4(vCol.rgb, vCol.a * a);
+          if (gl_FragColor.a < 0.004) discard;
+        }`,
+    }));
+    this.mesh.frustumCulled = false; this.mesh.renderOrder = 10;
+    scene.add(this.mesh);
+    this.groups = []; this.gc = 0; this.n = 0; this.cur = null;
+    this.copy = Object.keys(this.size).map(k => [this.stage[k], this.attr[k].array, this.size[k]]);
+  }
+  begin() { this.n = 0; this.gc = 0; this.cur = null; }
+  group(x, y, z) {
+    let g = this.groups[this.gc];
+    if (!g) g = this.groups[this.gc] = {};
+    g.x = x; g.y = y; g.z = z; g.s = g.e = this.n; this.gc++; this.cur = g;
+  }
+  raw(x, y, z, w, h, oR, oU, p0, p1, p2, p3, col, a, mode, flat) {
+    if (this.n >= MAXL || a < 0.004) return;
+    const i = this.n++, S = this.stage;
+    S.iPos[i * 3] = x; S.iPos[i * 3 + 1] = y; S.iPos[i * 3 + 2] = z;
+    S.iOff[i * 4] = w; S.iOff[i * 4 + 1] = h; S.iOff[i * 4 + 2] = oR; S.iOff[i * 4 + 3] = oU;
+    S.iPar[i * 4] = p0; S.iPar[i * 4 + 1] = p1; S.iPar[i * 4 + 2] = p2; S.iPar[i * 4 + 3] = p3;
+    S.iCol[i * 4] = col[0]; S.iCol[i * 4 + 1] = col[1]; S.iCol[i * 4 + 2] = col[2]; S.iCol[i * 4 + 3] = Math.min(1, a);
+    S.iMode[i * 2] = mode; S.iMode[i * 2 + 1] = flat;
+    this.cur.e = this.n;
+  }
+  // modes: 1 filled pill/rect, 2 outlined pill/rect, 3 ring (dashed if dashes > 0), 4 soft glow ring
+  shape(mode, x, y, z, w, h, col, a, oR = 0, oU = 0, p0 = 1, p1 = 0, p2 = 0, p3 = 0, flat = 0) { this.raw(x, y, z, w, h, oR, oU, p0, p1, p2, p3, col, a, mode, flat); }
+  text(str, x, y, z, h, col, a, oR = 0, oU = 0, flat = 0) {
+    for (const { ch, x: gx, k } of glyphLayout(str, h)) {
+      const c = ATLAS[ch];
+      if (!c) continue;
+      const sz = 133.333 * k;
+      this.raw(x, y, z, sz, sz, oR + gx + 50 * k, oU, c[0], c[1], c[2], c[3], col, a, 0, flat);
+    }
+  }
+  pill(x, y, z, str, h, oR, oU, bg, border, bw, fg, a, corner = 1) {
+    const W = glyphWidth(str, h) + h * 1.05, H = h * 1.8;
+    this.shape(1, x, y, z, W, H, bg, a, oR, oU, corner);
+    if (bw > 0) this.shape(2, x, y, z, W, H, border, a, oR, oU, corner, bw);
+    this.text(str, x, y, z, h, fg, a, oR, oU);
+    return W;
+  }
+  end(cam) {
+    const cp = cam.position, gs = this.groups.slice(0, this.gc);
+    for (const g of gs) g.d = (g.x - cp.x) ** 2 + (g.y - cp.y) ** 2 + (g.z - cp.z) ** 2;
+    gs.sort((a, b) => b.d - a.d); // far first, so nearer labels draw over farther ones
+    let o = 0;
+    const A = this.attr, jobs = this.copy;
+    for (const g of gs) {
+      const cnt = g.e - g.s;
+      if (!cnt) continue;
+      for (const [src, dst, n] of jobs) dst.set(src.subarray(g.s * n, g.e * n), o * n);
+      o += cnt;
+    }
+    for (const k in A) { A[k].clearUpdateRanges(); A[k].addUpdateRange(0, Math.max(1, o) * this.size[k]); A[k].needsUpdate = true; }
+    this.geo.instanceCount = o;
+  }
+}
+const LB = new LabelBatch();
+
+/* =====================================================================
+   4. Drawing a pose
+   ===================================================================== */
+const _m = new THREE.Matrix4(), _q = new THREE.Quaternion(), _s = new THREE.Vector3(), _p = new THREE.Vector3(), _d = new THREE.Vector3(), _c = new THREE.Color();
+const UP = new THREE.Vector3(0, 1, 0), camUp = new THREE.Vector3(), camRight = new THREE.Vector3(), camBack = new THREE.Vector3();
+let nR = 0, nB = 0, nC = 0, nD = 0;
+const setCol = (m, i, c) => { _c.setRGB(c[0], c[1], c[2], THREE.SRGBColorSpace); m.setColorAt(i, _c); };
+function addRod(ax, ay, az, bx, by, bz, r, col) {
+  if (nR >= MAXR) return;
+  _d.set(bx - ax, by - ay, bz - az);
+  const len = _d.length();
+  if (len < 1e-4 || r < 1e-4) return;
+  _d.divideScalar(len); _q.setFromUnitVectors(UP, _d);
+  _p.set((ax + bx) / 2, (ay + by) / 2, (az + bz) / 2); _s.set(r, len, r);
+  _m.compose(_p, _q, _s); rods.setMatrixAt(nR, _m); setCol(rods, nR, col); nR++;
+}
+function addBall(x, y, z, r, col) {
+  if (nB >= MAXB || r < 1e-4) return;
+  _q.identity(); _p.set(x, y, z); _s.set(r, r, r); _m.compose(_p, _q, _s); balls.setMatrixAt(nB, _m); setCol(balls, nB, col); nB++;
+}
+function addCone(x, y, z, dx, dy, dz, r, h, col) {
+  if (nC >= MAXC) return;
+  _d.set(dx, dy, dz).normalize(); _q.setFromUnitVectors(UP, _d); // tip forward, base trailing
+  _p.set(x, y, z); _s.set(r, h, r); _m.compose(_p, _q, _s); cones.setMatrixAt(nC, _m); setCol(cones, nC, col); nC++;
+}
+function addDisc(x, y, z, s, col) {
+  if (nD >= MAXN) return -1;
+  _p.set(x, y, z); _s.set(s, s, s); _m.compose(_p, camera.quaternion, _s); discs.setMatrixAt(nD, _m); setCol(discs, nD, col);
+  return nD++;
+}
+
+// A string hangs between two knots. It lies flat while both are on the plinth;
+// once lifted, it sags by however much of its length is not pulled straight.
+function sagOf(net, e, A, B) {
+  const hi = Math.max(A.h, B.h);
+  if (hi < 0.01 || net.HS <= 0) return 0;
+  const len = lerp(e.w, 1, net.unit) * net.HS;
+  const slack = Math.max(0, len - Math.abs(A.h - B.h));
+  return Math.min(1.3, slack * 0.34) * Math.min(1, hi / L0);
+}
+const CP = new Float32Array(3 * 13);
+function curvePts(ax, ay, az, bx, by, bz, sag, n) {
+  for (let k = 0; k <= n; k++) {
+    const u = k / n;
+    let y = ay + (by - ay) * u - 4 * sag * u * (1 - u);
+    if (y < 0.025) y = 0.025;
+    CP[k * 3] = ax + (bx - ax) * u; CP[k * 3 + 1] = y; CP[k * 3 + 2] = az + (bz - az) * u;
+  }
+}
+function curveAt(ax, ay, az, bx, by, bz, sag, u, out) {
+  out[0] = ax + (bx - ax) * u; out[2] = az + (bz - az) * u;
+  out[1] = Math.max(0.025, ay + (by - ay) * u - 4 * sag * u * (1 - u));
+  return out;
+}
+// draw the part of a curve from one end: fraction f, starting at a (fromA) or at b
+function drawPartial(n, f, fromA, r, col) {
+  if (f <= 0.001) return;
+  const total = n, upto = f * total;
+  for (let k = 0; k < total; k++) {
+    if (k >= upto) break;
+    const k0 = fromA ? k : total - k, k1 = fromA ? k + 1 : total - k - 1;
+    const frac = Math.min(1, upto - k);
+    const x0 = CP[k0 * 3], y0 = CP[k0 * 3 + 1], z0 = CP[k0 * 3 + 2];
+    const x1 = lerp(x0, CP[k1 * 3], frac), y1 = lerp(y0, CP[k1 * 3 + 1], frac), z1 = lerp(z0, CP[k1 * 3 + 2], frac);
+    addRod(x0, y0, z0, x1, y1, z1, r, col);
+    if (k > 0) addBall(x0, y0, z0, r, col);
+  }
+}
+
+const ui = {
+  mode: 'single', algo: 'dijkstra', race: ['bfs', 'dfs'], preset: 'textbook', seed: 0,
+  start: null, target: null, tool: 'move', selected: null, pendingEdge: null, pointer: null, drag: null, wEdge: null,
+};
+let gen = 1, graph = null, clock = 0;
+const wVis = [0, 0];          // eased visibility of the weight tags on each plinth
+const nodeWorld = new Map();  // `${j}|${key}` -> disc centre, for picking and the panels
+const edgeDraw = [];          // what was drawn, for picking strings
+const discOwner = [];
+const tmp3 = [0, 0, 0];
+
+function applyPose(P, dt) {
+  nR = nB = nC = nD = 0;
+  LB.begin(); nodeWorld.clear(); edgeDraw.length = 0; discOwner.length = 0;
+  camera.updateMatrixWorld();
+  camera.matrixWorld.extractBasis(camRight, camUp, camBack);
+  plinths.forEach((m, j) => { m.visible = !!P.nets[j] && P.nets[j].pa > 0.01; });
+  P.nets.forEach((net, j) => drawNet(net, j, dt));
+  if (ui.pendingEdge != null && ui.pointer) { // the string being tied follows the pointer
+    const w = nodeWorld.get(`${ui.pendingEdge.j}|${gen}:${ui.pendingEdge.id}`);
+    if (w) addRod(w.X, w.Y + 0.03, w.Z, ui.pointer.x, 0.03, ui.pointer.z, 0.022, COL.cobalt);
+  }
+  for (const m of [discs, rods, balls, cones]) { m.instanceMatrix.needsUpdate = true; m.instanceColor.needsUpdate = true; }
+  discs.count = nD; rods.count = nR; balls.count = nB; cones.count = nC;
+  LB.end(camera);
+}
+
+function drawNet(net, j, dt) {
+  const ox = net.ox, oz = net.oz, pl = net.plinth;
+  // plinth: it sinks into the floor when a plinth is taken away
+  const pm = plinths[j];
+  if (pm) { const hgt = Math.max(0.001, PH * net.pa); pm.position.set(ox + pl.cx, -PH + hgt / 2, oz + pl.cz); pm.scale.set(pl.w, hgt, pl.d); }
+  const top = -PH + PH * net.pa;
+  const wTarget = net.algo === 'dijkstra' || ui.tool === 'edge' || ui.wEdge != null ? 1 : 0;
+  wVis[j] += (wTarget - wVis[j]) * (1 - Math.exp(-dt * 8));
+  const drag = ui.drag && net.gen === gen ? ui.drag : null;
+  const nx = n => ox + (drag && n.id === drag.id ? drag.x : n.x), nz = n => oz + (drag && n.id === drag.id ? drag.z : n.z);
+  const ny = n => top + n.h;
+
+  // knots, pegs and discs
+  for (const n of net.nodes.values()) {
+    if (n.s < 0.01) continue;
+    const s = n.s, X = nx(n), Y = ny(n), Z = nz(n), rr = R * s;
+    addBall(X, Y + 0.03, Z, KNOT * s, COL.ink);
+    addRod(X, Y + 0.03, Z, X, Y + PEG * s, Z, 0.02 * s, COL.ink);
+    const cx = X + camUp.x * rr, cy = Y + PEG * s + camUp.y * rr, cz = Z + camUp.z * rr;
+    const di = addDisc(cx, cy, cz, s, n.fill);
+    if (di >= 0) discOwner[di] = { j, id: n.id };
+    nodeWorld.set(`${j}|${n.key}`, { x: cx, y: cy, z: cz, X, Y, Z, r: rr, id: n.id, j, gen: net.gen });
+    // a dashed socket marks where a lifted knot used to lie
+    if (n.h > 0.02) { LB.group(X, top, Z); LB.shape(3, X, top + 0.012, Z, 0.62 * s, 0.62 * s, COL.ink, 0.5 * Math.min(1, n.h / L0) * s, 0, 0, 1, 0.02, 9, 0, 1); }
+    LB.group(cx, cy, cz);
+    if (n.halo > 0.01) LB.shape(4, cx, cy, cz, 2 * (rr + 0.5), 2 * (rr + 0.5), COL.cobalt, 0.34 * n.halo * (0.85 + 0.15 * Math.sin(clock * 4)), 0, 0, 0, rr + 0.17, 0.2);
+    LB.shape(3, cx, cy, cz, 2 * rr, 2 * rr, n.rim, 1, 0, 0, 1, n.rimW * s);
+    LB.text(n.label, cx, cy, cz, (n.label.length > 1 ? 0.27 : 0.36) * s, n.glyph, 1);
+    if (n.tgt > 0.01) {
+      const tr = rr + 0.17 * s;
+      LB.shape(3, cx, cy, cz, 2 * tr, 2 * tr, COL.red, n.tgt * (1 - n.tgtSolid), 0, 0, 1, 0.048 * s, 14, clock * 0.12);
+      LB.shape(3, cx, cy, cz, 2 * tr, 2 * tr, COL.red, n.tgt * n.tgtSolid, 0, 0, 1, 0.06 * s);
+    }
+    if (ui.selected === n.id && net.gen === gen) LB.shape(3, cx, cy, cz, 2 * (rr + 0.1), 2 * (rr + 0.1), COL.cobalt, 1, 0, 0, 1, 0.035);
+    if (ui.pendingEdge && ui.pendingEdge.id === n.id && net.gen === gen) LB.shape(3, cx, cy, cz, 2 * (rr + 0.12), 2 * (rr + 0.12), COL.cobalt, 1, 0, 0, 1, 0.05, 10, clock * 0.4);
+    if (n.hook > 0.01) LB.shape(3, cx, cy, cz, 0.16 * s, 0.16 * s, COL.ink, n.hook * s, 0, rr + 0.075 * s, 1, 0.024 * s);
+    if (n.tag && n.tagA > 0.01) {
+      const th = 0.23 * Math.min(1, s), W = glyphWidth(n.tag, th) + th * 1.05;
+      const st = n.tagSt;
+      LB.pill(cx, cy, cz, n.tag, th, rr + W / 2 - 0.05, rr * 0.66, COL.paper, st === 'wait' ? COL.yellowDeep : st === 'inf' ? COL.faint : COL.ink, st === 'wait' ? 0.03 : st === 'inf' ? 0.012 : 0.017, st === 'inf' ? COL.graphite : COL.ink, n.tagA * (st === 'inf' ? 0.85 : 1));
+    }
+  }
+  // old distances lift away, struck through
+  for (const gh of net.ghosts) {
+    const w = nodeWorld.get(`${j}|${gh.node}`);
+    if (!w) continue;
+    const th = 0.23, W = glyphWidth(gh.text, th) + th * 1.05, a = 1 - gh.g, oR = w.r + W / 2 - 0.05, oU = w.r * 0.66 + 0.1 + gh.g * 0.5;
+    LB.group(w.x, w.y, w.z);
+    LB.pill(w.x, w.y, w.z, gh.text, th, oR, oU, COL.paper, COL.faint, 0.012, COL.graphite, a);
+    LB.shape(1, w.x, w.y, w.z, W * 0.8, 0.03, COL.red, a * smooth(0, 0.25, gh.g), oR, oU, 1);
+  }
+
+  // strings
+  const showW = wVis[j] > 0.01;
+  for (const e of net.edges.values()) {
+    if (e.s < 0.01) continue;
+    const A = net.nodes.get(e.a), B = net.nodes.get(e.b);
+    if (!A || !B || A.s < 0.01 || B.s < 0.01) continue;
+    const s = e.s * Math.min(1, A.s, B.s);
+    const ax = nx(A), ay = ny(A) + 0.03, az = nz(A), bx = nx(B), by = ny(B) + 0.03, bz = nz(B);
+    const sag = sagOf(net, e, A, B), n = sag > 0.02 ? 12 : 1;
+    curvePts(ax, ay, az, bx, by, bz, sag, n);
+    edgeDraw.push({ j, id: e.id, gen: net.gen, ax, ay, az, bx, by, bz, sag, wx: 0, wy: 0, wz: 0, showW });
+    let col = mix3(COL.string, COL.ink, e.tree);
+    if (e.hl > 0.01) col = mix3(col, COL.cobalt, 0.7 * e.hl);
+    const r = lerp(0.016, 0.026, e.tree) * (1 + 0.35 * e.hl) * s;
+    for (let k = 0; k < n; k++) {
+      addRod(CP[k * 3], CP[k * 3 + 1], CP[k * 3 + 2], CP[k * 3 + 3], CP[k * 3 + 4], CP[k * 3 + 5], r, col);
+      if (k > 0 && r > 0.02) addBall(CP[k * 3], CP[k * 3 + 1], CP[k * 3 + 2], r, col);
+    }
+    if (e.thr > 0.001) drawPartial(n, e.thr, e.thrFrom === e.a, 0.046 * s, COL.cobalt);
+    if (e.path > 0.001) drawPartial(n, e.path, e.pathFrom === e.a, 0.05 * s, COL.cobalt);
+    if (e.dir > 0.01) { // arrowhead just short of the far knot
+      const len = Math.hypot(bx - ax, by - ay, bz - az) || 1, u1 = Math.max(0.5, 1 - (KNOT + 0.05) / len), u0 = Math.max(0.3, u1 - 0.05);
+      const p1 = curveAt(ax, ay, az, bx, by, bz, sag, u1, [0, 0, 0]), p0 = curveAt(ax, ay, az, bx, by, bz, sag, u0, tmp3);
+      const c = e.path > 0.5 || e.thr > 0.5 ? COL.cobalt : col;
+      addCone(p1[0], p1[1], p1[2], p1[0] - p0[0], p1[1] - p0[1], p1[2] - p0[2], 0.085 * e.dir * s, 0.24 * e.dir * s, c);
+    }
+    if (showW) {
+      const m = curveAt(ax, ay, az, bx, by, bz, sag, 0.5, tmp3), rec = edgeDraw[edgeDraw.length - 1];
+      rec.wx = m[0]; rec.wy = m[1] + 0.1; rec.wz = m[2];
+      const a = wVis[j] * s * e.wA;
+      const hot = e.hl > 0.5 || (ui.wEdge === e.id && net.gen === gen);
+      LB.group(m[0], m[1] + 0.1, m[2]);
+      LB.pill(m[0], m[1] + 0.1, m[2], String(e.w), 0.2, 0, 0, hot ? COL.cobalt : COL.paper, COL.ink, hot ? 0 : 0.013, hot ? COL.white : COL.ink, a * (e.tree > 0.5 || hot ? 1 : 0.92), 0.42);
+    }
+  }
+  // beads travel along strings
+  for (const b of net.beads) {
+    const e = net.edges.get(b.edge);
+    if (!e || b.a < 0.01) continue;
+    const A = net.nodes.get(e.a), Bn = net.nodes.get(e.b);
+    if (!A || !Bn) continue;
+    const sag = sagOf(net, e, A, Bn), u = b.from === e.a ? b.u : 1 - b.u;
+    const p = curveAt(nx(A), ny(A) + 0.03, nz(A), nx(Bn), ny(Bn) + 0.03, nz(Bn), sag, u, tmp3);
+    addBall(p[0], p[1] + 0.02, p[2], (b.r || 0.1) * Math.min(1, b.a * 1.5), b.col);
+  }
+  // ripples spread across the plinth
+  for (const rp of net.ripples) {
+    const n = net.nodes.get(rp.node);
+    if (!n) continue;
+    const X = nx(n), Z = nz(n), Y = ny(n);
+    LB.group(X, Y, Z);
+    LB.shape(3, X, Y + 0.015, Z, 2 * rp.r, 2 * rp.r, rp.col, rp.a, 0, 0, 1, 0.04, 0, 0, 1);
+  }
+  // the ceiling wire that lifts the start, and the ruler beside it
+  const S = net.startKey ? net.nodes.get(net.startKey) : null;
+  if (S && S.s > 0.01) {
+    const w = nodeWorld.get(`${j}|${S.key}`);
+    if (net.wire > 0.01 && w) {
+      const o = w.r + 0.15, hx = w.x + camUp.x * o, hy = w.y + camUp.y * o, hz = w.z + camUp.z * o;
+      addRod(hx, hy + (1 - net.wire) * 14, hz, hx, 70, hz, 0.014, COL.ink);
+    }
+    if (net.ruler > 0.01 && net.HS > 0) {
+      const rx = ox + pl.cx - pl.w / 2 - 0.55, rz = nz(S), yTop = ny(S) + 0.03, span = net.tau * net.HS, a = net.ruler;
+      addRod(rx, yTop, rz, rx, yTop - span, rz, 0.012 * a, COL.ink);
+      const T = Math.max(1, net.tau);
+      const stepD = [1, 2, 5, 10, 20, 50, 100, 200, 500].find(v => T / v <= 8) || 1000;
+      LB.group(rx, yTop, rz);
+      LB.text(net.rulerText, rx, yTop + 0.45, rz, 0.15, COL.graphite, a, 0.2, 0);
+      for (let d = 0; d <= net.tau + 1e-6; d += stepD) {
+        const y = yTop - d * net.HS;
+        addRod(rx - 0.02, y, rz, rx + 0.18, y, rz, 0.01 * a, COL.ink);
+        LB.text(String(d), rx, y, rz, 0.2, COL.graphite, a, -0.3, 0);
+      }
+    }
+  }
+  if (net.title && net.titleA > 0.01) { // the algorithm's name stands beside its plinth
+    const tx = ox + pl.cx + pl.w / 2 + 0.35, tz = oz + pl.cz, ty = 0.3, h = 0.44;
+    LB.group(tx, ty, tz);
+    LB.text(net.title, tx, ty, tz, h, COL.ink, net.titleA, glyphWidth(net.title, h) / 2, 0);
+  }
+}
+
+/* =====================================================================
+   5. Camera: keep both plinths framed in the free part of the screen
+   ===================================================================== */
+const dock = $('dock'), masthead = $('masthead'), side = $('side');
+let bar = null;
+const framer = createFramer({ camera, controls, home: { theta: -0.16, phi: PHI_FLAT }, frameButton: $('bFrame'), lockZ: false, minDist: 8, maxDist: 120 });
+function measureFree() {
+  const W = innerWidth, H = innerHeight;
+  if (isPhone()) {
+    const ins = $('inspector');
+    const top = ins.hidden ? masthead.getBoundingClientRect().bottom + 10 : ins.getBoundingClientRect().bottom + 14;
+    const bot = dock.getBoundingClientRect().top - 8;
+    framer.free = { l: 10, r: W - 10, t: top, b: Math.max(top + 120, bot) };
+  } else {
+    const d = dock.getBoundingClientRect(), b = bar.getBoundingClientRect(), sr = side.getBoundingClientRect();
+    const r = sr.width > 0 ? sr.left - 18 : W - 24;
+    framer.free = { l: d.right + 20, r: Math.max(d.right + 300, r), t: 78, b: Math.max(200, b.top - 14) };
+  }
+}
+const _v = new THREE.Vector3();
+function frameBox(P) {
+  const pts = [];
+  for (const net of P.nets) {
+    if (net.pa < 0.05) continue;
+    const pl = net.plinth, x0 = net.ox + pl.cx - pl.w / 2, x1 = x0 + pl.w, z0 = net.oz + pl.cz - pl.d / 2, z1 = z0 + pl.d;
+    pts.push([x0, 0, z0], [x1, 0, z0], [x0, 0, z1], [x1, 0, z1], [x0, -PH, z1], [x1, -PH, z1]);
+    let hi = 0;
+    for (const n of net.nodes.values()) if (n.s > 0.05) { hi = Math.max(hi, n.h); if (n.h > 0.05) pts.push([net.ox + n.x, n.h + PEG + 2 * R + 0.3, net.oz + n.z]); }
+    pts.push([net.ox + pl.cx, 1.25, z0]); // discs standing on the back row
+    if (net.title && net.titleA > 0.05) pts.push([x1 + 0.45 + glyphWidth(net.title, 0.44), 0.6, net.oz + pl.cz]);
+    if (net.ruler > 0.05 && net.startKey) { const S = net.nodes.get(net.startKey); if (S) pts.push([net.ox + pl.cx - pl.w / 2 - 0.8, S.h + 0.6, net.oz + S.z]); }
+  }
+  if (!pts.length) pts.push([-4, 0, -2.5], [4, 0, 2.5]);
+  let x0 = Infinity, y0 = Infinity, z0 = Infinity, x1 = -Infinity, y1 = -Infinity, z1 = -Infinity;
+  for (const p of pts) { x0 = Math.min(x0, p[0]); x1 = Math.max(x1, p[0]); y0 = Math.min(y0, p[1]); y1 = Math.max(y1, p[1]); z0 = Math.min(z0, p[2]); z1 = Math.max(z1, p[2]); }
+  const c = [(x0 + x1) / 2, (y0 + y1) / 2, (z0 + z1) / 2];
+  let r0 = Infinity, r1 = -Infinity, u0 = Infinity, u1 = -Infinity, f1 = 0;
+  for (const p of pts) {
+    _v.set(p[0] - c[0], p[1] - c[1], p[2] - c[2]);
+    const r = _v.dot(camRight), u = _v.dot(camUp), f = _v.dot(camBack);
+    r0 = Math.min(r0, r); r1 = Math.max(r1, r); u0 = Math.min(u0, u); u1 = Math.max(u1, u); f1 = Math.max(f1, f);
+  }
+  const mr = (r0 + r1) / 2, mu = (u0 + u1) / 2;
+  return {
+    cx: c[0] + camRight.x * mr + camUp.x * mu, cy: c[1] + camRight.y * mr + camUp.y * mu, cz: c[2] + camRight.z * mr + camUp.z * mu,
+    hw: Math.max(3, (r1 - r0) / 2), hh: Math.max(2, (u1 - u0) / 2), depth: f1 * 0.25,
+  };
+}
+function fitLights(P) {
+  let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
+  for (const net of P.nets) { const pl = net.plinth; x0 = Math.min(x0, net.ox + pl.cx - pl.w / 2); x1 = Math.max(x1, net.ox + pl.cx + pl.w / 2); z0 = Math.min(z0, net.oz + pl.cz - pl.d / 2); z1 = Math.max(z1, net.oz + pl.cz + pl.d / 2); }
+  if (x0 === Infinity) { x0 = -4; x1 = 4; z0 = -3; z1 = 3; }
+  const cx = (x0 + x1) / 2, cz = (z0 + z1) / 2, half = Math.max(x1 - x0, z1 - z0) / 2 + 4;
+  key.target.position.set(cx, 0, cz);
+  key.position.copy(key.target.position).addScaledVector(KEY_DIR, 40);
+  const sc = key.shadow.camera;
+  sc.left = -half; sc.right = half; sc.top = half; sc.bottom = -half; sc.near = 4; sc.far = 90;
+  sc.updateProjectionMatrix();
+  pool.position.set(cx - 2, 26, cz + 12);
+  pool.target.position.set(cx, 0, cz);
+  pool.angle = Math.min(1.1, Math.atan((half + 2) / 28));
+}
+
+/* =====================================================================
+   6. Sound: what each step sounds like
+   ===================================================================== */
+Sound.step = function (st, dur) {
+  if (!this.on || !this.ctx) return;
+  const S = dur / player.speed, p = v => this.pitch(v, 30);
+  switch (st.kind) {
+    case 'start': this.tink(523, 0.3, 0, 0.7); break;
+    case 'dequeue': this.tink(p(st.tag[st.focus] * 4), 0.28); this.hiss(0.4, 700, 1800, 0.025); break;
+    case 'discover': this.tink(p(st.tag[st.to] * 4 + 2), 0.2, 0.3 * S, 0.4); break;
+    case 'skip': case 'keep': this.tink(1320, 0.05, 0, 0.15); break;
+    case 'dive': this.hiss(0.35 * S, 900, 2600, 0.035); this.tink(p(Math.min(30, st.tag[st.to])), 0.22, 0.4 * S, 0.5); break;
+    case 'back': this.hiss(0.3 * S, 2200, 700, 0.03); break;
+    case 'extract': this.hiss(0.8 * S, 300, 900, 0.05); this.tink(p(Math.min(30, st.tau)), 0.3, 0.68 * S, 0.8); break;
+    case 'improve': this.tink(880, 0.18, 0.45 * S, 0.4); break;
+    case 'found': case 'path': this.tink(784, 0.2, 0.2 * S); this.tink(988, 0.2, 0.45 * S); this.chime(0.75 * S); break;
+    case 'lift': this.hiss(2.2 * S, 250, 1100, 0.07, 0.3 * S); this.chime(0.95 * S); break;
+    case 'unreachable': this.thud(0, 90, 0.3); break;
+    case 'done': this.chime(); break;
+    case 'tick': this.tink(660, 0.12, 0, 0.3); if (st.hit) this.chime(0.4 * S); break;
+  }
+};
+
+/* =====================================================================
+   7. The player and the programs it plays
+   ===================================================================== */
+const HOLD = { start: 0.5, dequeue: 0.2, discover: 0.1, skip: 0.04, dive: 0.1, back: 0.08, extract: 0.3, improve: 0.2, keep: 0.08, found: 0.9, path: 1.2, lift: 1.2, done: 0.8, unreachable: 0.9, tick: 0.2 };
+const RATE = { skip: 0.0015, discover: 0.003, keep: 0.003, dive: 0.003, back: 0.003, dequeue: 0.004, improve: 0.005, extract: 0.005, tick: 0.004 };
+const player = new Player({
+  build: buildTransition,
+  morph,
+  holdFor: st => readingHold(st, HOLD, RATE, REDUCED) * (player.prog.nets[0]?.pace || 1),
+  onShow: i => showStep(i),
+  onStep: (st, i, tr) => Sound.step(st, tr.dur),
+  onBack: () => { if (Sound.ready()) Sound.tink(660, 0.06, 0, 0.2); },
+  onRefresh: () => refreshAfterStep(),
+  onUI: () => transport.updatePlayUI(),
+  onLoad: () => transport.build(),
+  onGesture: () => Sound.ensure(),
+});
+const transport = mountTransport($('transport'), player, {
+  onGesture: () => Sound.ensure(),
+  tickClass: s => (s.kind === 'tick' ? (s.hit ? 'rot' : '') : PAYOFF.has(s.kind) ? 'rot' : KEY_KIND[s.algo]?.has(s.kind) ? 'key' : ''),
+});
+bar = document.querySelector('#transport .bar');
+
+const INTRO = {
+  bfs: 'Breadth-first search visits knots in rings: everything one string away, then two, then three. Weights are ignored; every string counts as one step. Its queue is on the right.',
+  dfs: 'Depth-first search follows one thread as deep as it can and backs up only at a dead end. Its stack is the thread.',
+  dijkstra: 'Dijkstra finds the cheapest route when strings have weights. Watch the net lift off the plinth in order of distance.',
+};
+const SHAPE = { bfs: 'BFS spreads a layer at a time', dfs: 'DFS follows one thread as deep as it goes', dijkstra: 'Dijkstra always settles the cheapest knot next' };
+
+function raceSteps(ctxs) {
+  const K = Math.max(...ctxs.map(c => c.ticks.length));
+  const status = ctxs.map(() => null);
+  const steps = [];
+  for (let k = 0; k < K; k++) {
+    const parts = [];
+    let hit = false;
+    ctxs.forEach((c, j) => {
+      const r = tickRange(c, k);
+      if (!r) return;
+      const L = id => c.g.label(id), name = ALGOS[c.algo].name;
+      const sub = c.steps.slice(r[0], r[1] + 1);
+      const lead = sub.find(s => KEY_KIND[c.algo].has(s.kind)) || sub[0];
+      let text = lead.kind === 'dequeue' ? `${name} takes ${L(lead.focus)} off the queue`
+        : lead.kind === 'dive' ? `${name} dives to ${L(lead.to)}`
+        : lead.kind === 'start' ? `${name} starts at ${L(lead.focus)}`
+        : lead.kind === 'extract' ? `${name} settles ${L(lead.focus)} at ${lead.tau}`
+        : `${name} ${lead.head.charAt(0).toLowerCase()}${lead.head.slice(1).replace(/\.$/, '')}`;
+      const end = sub.find(s => s.kind === 'found' || s.kind === 'path' || s.kind === 'unreachable' || s.kind === 'done');
+      if (end) {
+        const cost = end.path.length > 1 ? end.path.slice(1).reduce((a, id, q) => a + c.g.findEdge(end.path[q], id).w, 0) : 0;
+        status[j] = { kind: end.kind, tick: k + 1, strings: Math.max(0, end.path.length - 1), cost, visited: end.visited, target: c.target };
+        if (end.kind === 'found' || end.kind === 'path') { text += ` and reaches ${L(c.target)}`; hit = true; }
+        else if (c.target != null) text += `, and ${L(c.target)} is out of reach`;
+        else text += ' and is done';
+      }
+      parts.push(text);
+    });
+    const head = parts.join('; ') + '.';
+    let body;
+    const names = ctxs.map(c => ALGOS[c.algo].name);
+    if (k === 0) body = `One tick is one knot visited, on both plinths at once. Watch the shapes: ${SHAPE[ctxs[0].algo]}; ${SHAPE[ctxs[1].algo]}.`;
+    else {
+      const counts = ctxs.map((c, j) => `${names[j]} ${c.steps[tickEnd(c, k)].visited}`).join(', ');
+      body = `Knots visited so far: ${counts}.`;
+    }
+    if (k === K - 1) body = raceSummary(ctxs, status);
+    steps.push({ kind: 'tick', k, head, body, hit, status: status.map(s => s && { ...s }), visited: ctxs.map(c => c.steps[tickEnd(c, k)].visited) });
+  }
+  return steps;
+}
+function raceSummary(ctxs, status) {
+  const out = [];
+  const L = id => ctxs[0].g.label(id);
+  ctxs.forEach((c, j) => {
+    const s = status[j], name = ALGOS[c.algo].name;
+    if (!s) return;
+    if (s.kind === 'found' || s.kind === 'path') out.push(`${name} reached ${L(c.target)} after ${plural(s.tick, 'tick')}, by a route of ${plural(s.strings, 'string')}${ctxs.some(x => x.algo === 'dijkstra') ? ` costing ${s.cost}` : ''}.`);
+    else if (c.target != null) out.push(`${name} could not reach ${L(c.target)}.`);
+    else out.push(`${name} visited ${plural(s.visited, 'knot')} in ${plural(s.tick, 'tick')}.`);
+  });
+  const algos = ctxs.map(c => c.algo);
+  if (ctxs[0].target != null && status.every(s => s && (s.kind === 'found' || s.kind === 'path'))) {
+    if (algos.includes('bfs') && algos.includes('dfs')) out.push('Both find a route, but only BFS promises the fewest strings.');
+    else if (algos.includes('dijkstra')) out.push('Dijkstra’s route is the cheapest by weight; BFS and DFS ignore weights.');
+  }
+  return out.join(' ');
+}
+function makeProgram(g) {
+  let nets, steps, title;
+  if (ui.mode === 'race') {
+    nets = ui.race.map((a, j) => makeCtx(g, a, j, 2, gen));
+    steps = nets[0].steps.length ? raceSteps(nets) : [];
+    title = `Race · ${ALGOS[ui.race[0]].name} vs ${ALGOS[ui.race[1]].name}`;
+  } else {
+    nets = [makeCtx(g, ui.algo, 0, 1, gen)];
+    steps = nets[0].steps;
+    title = g.nodes.has(ui.start) ? `${ALGOS[ui.algo].name} from ${g.label(ui.start)}${ui.target != null ? ` to ${g.label(ui.target)}` : ''}` : ALGOS[ui.algo].long;
+  }
+  const prog = { mode: ui.mode, nets, steps, title, graph: g };
+  prog.startPose = { nets: nets.map(c => netStatic(c, -1)), callout: null, focus: null };
+  return prog;
+}
+function introText(prog) {
+  if (!prog.graph.size) return { head: 'The plinth is empty.', body: 'Choose + Node and click the plinth to add knots, then + Edge to tie strings between them. Or pick a graph from the list.' };
+  if (prog.mode === 'race') {
+    const t = ui.target != null ? prog.graph.label(ui.target) : null;
+    return { head: `${prog.title}${t ? `, to ${t}` : ''}.`, body: `Two plinths, one clock: each tick, both algorithms visit one knot. ${SHAPE[ui.race[0]]}; ${SHAPE[ui.race[1]]}. Press play${t ? ` to see which reaches ${t} first` : ''}.` };
+  }
+  return { head: `${prog.title}.`, body: `${INTRO[ui.algo]} Press play.` };
+}
+
+// Load a program, always easing from whatever is on screen to its start.
+function loadProg(prog, { autoplay = false, catchDur = 0.6, from = null } = {}) {
+  const P0 = from || (player.prog && player.prog.startPose ? player.pose() : null);
+  prog.intro = introText(prog);
+  player.load(prog, { autoplay, catchDur });
+  if (P0 && catchDur > 0) player.tr = { tr: morph(P0, prog.startPose, catchDur), i: -1, dir: 1, t: 0, after: () => { player.hold = 0.15; } };
+  else player.tr = null;
+  syncControls();
+  showStep(-1);
+  refreshAfterStep();
+}
+function validateEnds() {
+  const ids = graph.sortedIds();
+  if (!graph.nodes.has(ui.start)) ui.start = ids.length ? ids[0] : null;
+  if (ui.target != null && (!graph.nodes.has(ui.target) || ui.target === ui.start)) ui.target = null;
+  if (ui.selected != null && !graph.nodes.has(ui.selected)) closeInspector();
+  if (ui.pendingEdge && !graph.nodes.has(ui.pendingEdge.id)) ui.pendingEdge = null;
+  if (ui.wEdge != null && !graph.edges.has(ui.wEdge)) closeWeight();
+}
+function rebuild({ autoplay = false, catchDur = 0.6, from = null } = {}) {
+  validateEnds();
+  loadProg(makeProgram(graph.clone()), { autoplay, catchDur, from });
+}
+function loadPreset(name, { seed = null, autoplay = false } = {}) {
+  const P = PRESETS[name];
+  ui.preset = name;
+  ui.seed = seed ?? 0;
+  graph = P.random && seed != null ? P.make(seed) : P.make();
+  gen++;
+  ui.start = graph.byLabel(P.start);
+  ui.target = P.target ? graph.byLabel(P.target) : null;
+  if (P.algo === 'race') { ui.mode = 'race'; ui.race = P.race.slice(); }
+  $('optDirected').checked = graph.directed;
+  ui.selected = null; ui.pendingEdge = null; closeWeight(); closeInspector(true);
+  rebuild({ autoplay, catchDur: 0.9 });
+  hint();
+}
+
+/* =====================================================================
+   8. Interface: narration, the data-structure panel, about, inspector
+   ===================================================================== */
+const plac = placard();
+const placeCallout = calloutPlacer(camera, THREE);
+const fly = $('flyLayer');
+
+// A list whose items slide to their new places, fly in from their knot, and fly back out to it.
+class FlipList {
+  constructor(el) { this.el = el; this.map = new Map(); }
+  update(items, { from, to, dur }) {
+    const first = new Map();
+    if (dur) for (const [k, node] of this.map) first.set(k, node.getBoundingClientRect());
+    const want = new Set(items.map(it => it.key));
+    for (const [k, node] of [...this.map]) if (!want.has(k)) { this.map.delete(k); if (dur) flyOut(node, this.el, first.get(k), to && to(k), dur); node.remove(); }
+    let prev = null;
+    for (const it of items) {
+      let node = this.map.get(it.key);
+      if (!node) { node = document.createElement('div'); node._new = true; this.map.set(it.key, node); }
+      if (node._html !== it.html) { node.innerHTML = it.html; node._html = it.html; }
+      if (node.className !== it.cls) node.className = it.cls;
+      const next = prev ? prev.nextSibling : this.el.firstChild;
+      if (next !== node) this.el.insertBefore(node, next);
+      prev = node;
+    }
+    for (const [k, node] of this.map) {
+      if (!dur) { node._new = false; continue; }
+      const last = node.getBoundingClientRect();
+      if (!last.width) { node._new = false; continue; }
+      if (node._new) {
+        node._new = false;
+        const p = from && from(k);
+        const kf = p ? [{ transform: `translate(${p.x - last.left - last.width / 2}px,${p.y - last.top - last.height / 2}px) scale(.35)`, opacity: 0 }, { transform: 'none', opacity: 1 }]
+          : [{ transform: 'scale(.7)', opacity: 0 }, { transform: 'none', opacity: 1 }];
+        node.animate(kf, { duration: dur, easing: 'cubic-bezier(.2,.75,.25,1)' });
+        continue;
+      }
+      const f = first.get(k);
+      if (!f) continue;
+      const dx = f.left - last.left, dy = f.top - last.top;
+      if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) node.animate([{ transform: `translate(${dx}px,${dy}px)` }, { transform: 'none' }], { duration: dur, easing: 'cubic-bezier(.3,.7,.25,1)' });
+    }
+  }
+}
+function flyOut(node, list, rect, p, dur) {
+  if (!rect || !rect.width) return;
+  const wrap = document.createElement('div');
+  wrap.className = list.parentElement.className + ' flying';
+  wrap.style.cssText = `position:fixed;left:${rect.left}px;top:${rect.top}px;width:${rect.width}px;height:${rect.height}px;margin:0;display:block`;
+  const inner = document.createElement('div'); inner.className = list.className; inner.style.cssText = 'display:block;width:100%;height:100%';
+  const g = node.cloneNode(true); g.style.cssText = 'width:100%;height:100%;box-sizing:border-box;margin:0';
+  inner.appendChild(g); wrap.appendChild(inner); fly.appendChild(wrap);
+  const kf = p ? [{ transform: 'none', opacity: 1 }, { transform: `translate(${p.x - rect.left - rect.width / 2}px,${p.y - rect.top - rect.height / 2}px) scale(.3)`, opacity: 0 }]
+    : [{ opacity: 1 }, { opacity: 0, transform: 'translateY(-10px)' }];
+  wrap.animate(kf, { duration: dur, easing: 'cubic-bezier(.5,0,.5,1)' }).onfinish = () => wrap.remove();
+}
+function discSVG(label, st, size = 26) {
+  const r = size / 2, gh = label.length > 1 ? size * 0.32 : size * 0.42;
+  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" aria-hidden="true"><circle cx="${r}" cy="${r}" r="${r - 1.2}" fill="${HEXOF[st]}"${st === 'unseen' ? ' stroke="#1B1A17" stroke-width="1.6"' : ''}/>${glyphSVG(label, r, r, gh, GLYHEX[st], 15)}</svg>`;
+}
+const DSMETA = { queue: ['Queue', 'first in, first out'], stack: ['Stack', 'last in, first out'], pq: ['Priority queue', 'cheapest first'] };
+const DONE_NOTE = {
+  dijkstra: 'Distances only ever rise in this list. That is the whole proof.',
+  bfs: 'Layers only ever rise in this list: BFS finishes one before starting the next.',
+  dfs: 'The order the thread first reached each knot.',
+};
+function nodeScreen(j, id) {
+  const P = player.pose(), net = P.nets[j];
+  if (!net) return null;
+  const w = nodeWorld.get(`${j}|${net.gen}:${id}`);
+  if (!w) return null;
+  _v.set(w.x, w.y, w.z).project(camera);
+  if (_v.z > 1) return null;
+  return { x: (_v.x + 1) / 2 * innerWidth, y: (1 - _v.y) / 2 * innerHeight };
+}
+class DSView {
+  constructor(root) {
+    this.root = root;
+    root.innerHTML = `<div class="ds-head"><span class="eyebrow ds-title"></span><span class="ds-sub"></span></div>
+      <div class="ds-wrap"><span class="qend">out</span><div class="dsl"></div><span class="qend">in</span></div>
+      <div class="ds-empty"></div><div class="ds-more"></div>
+      <div class="ds-done"><div class="ds-rule"></div><div class="eyebrow ds-dtitle"></div><div class="donel"></div><div class="ds-note"></div></div>`;
+    this.q = s => root.querySelector(s);
+    this.list = new FlipList(this.q('.dsl'));
+    this.done = new FlipList(this.q('.donel'));
+  }
+  render(ctx, i, dur, race) {
+    const step = i >= 0 ? ctx.steps[i] : null, prev = i > 0 ? ctx.steps[i - 1] : null;
+    const L = id => ctx.g.label(id), kind = ALGOS[ctx.algo].ds, j = ctx.j;
+    const [title, sub] = DSMETA[kind];
+    this.root.className = 'dsv' + (race ? ' race' : '');
+    this.q('.ds-title').textContent = race ? `${ALGOS[ctx.algo].name} · ${title.toLowerCase()}` : title;
+    this.q('.ds-sub').textContent = sub;
+    this.q('.ds-wrap').className = 'ds-wrap ' + kind;
+    const ds = step ? step.ds : [], items = [];
+    let more = '';
+    if (kind === 'queue') {
+      const MAX = race ? 10 : 14;
+      let last = null;
+      ds.slice(0, MAX).forEach(d => {
+        if (last != null && d.key !== last) items.push({ key: 'L' + d.key, html: '', cls: 'qdiv' });
+        last = d.key;
+        items.push({ key: 'n' + d.id, html: discSVG(L(d.id), 'wait', 24) + `<b>${d.key}</b>`, cls: 'dsi' });
+      });
+      if (ds.length > MAX) more = `+${ds.length - MAX} more at the back`;
+    } else if (kind === 'stack') {
+      const MAX = race ? 5 : 9, rev = ds.slice().reverse();
+      rev.slice(0, MAX).forEach((d, k) => items.push({
+        key: 'n' + d.id, cls: 'dsi' + (k === 0 ? ' first' : ''),
+        html: discSVG(L(d.id), k === 0 ? 'active' : 'wait', 26) + `<div class="k"><b>${L(d.id)}</b><span>${k === 0 ? 'exploring from here' : `visit no. ${step.tag[d.id]}`}</span></div>${k === 0 ? '<em>top</em>' : ''}`,
+      }));
+      if (rev.length > MAX) more = `+${rev.length - MAX} more below`;
+    } else {
+      const MAX = race ? 5 : 8;
+      const was = step && step.kind === 'improve' && prev ? prev.ds.findIndex(d => d.id === step.to) : -1;
+      ds.slice(0, MAX).forEach((d, k) => {
+        let note = '';
+        if (step.kind === 'improve' && d.id === step.to) note = step.old === Infinity ? 'first ticket' : `was <s>${step.old}</s>${was < 0 || was > k ? ' · moved up' : ''}`;
+        items.push({
+          key: 'n' + d.id, cls: 'dsi' + (k === 0 ? ' first' : ''),
+          html: discSVG(L(d.id), 'wait', 26) + `<div class="k"><b>${d.key}</b>${note ? `<span>${note}</span>` : `<span>${L(d.id)}’s ticket</span>`}</div>${k === 0 ? '<em>next</em>' : ''}`,
+        });
+      });
+      if (ds.length > MAX) more = `+${ds.length - MAX} more tickets`;
+    }
+    this.q('.ds-empty').textContent = !step ? (ctx.steps.length ? 'Empty until you press play.' : 'Nothing to run.') : ds.length ? '' : 'Empty.';
+    this.q('.ds-more').textContent = more;
+    const pos = k => (k[0] === 'n' ? nodeScreen(j, +k.slice(1)) : null);
+    this.list.update(items, { from: pos, to: pos, dur });
+    // what has been processed, in order
+    this.q('.ds-dtitle').textContent = ctx.algo === 'dijkstra' ? 'Lifted, in order' : 'Visited, in order';
+    const order = step ? step.order : [], chips = [], CAP = 12;
+    if (order.length > CAP) chips.push({ key: 'more', html: `+${order.length - CAP} earlier`, cls: 'dchip more' });
+    for (const id of order.slice(-CAP)) {
+      const v = ctx.algo === 'dijkstra' ? step.lifted[id] : ctx.algo === 'bfs' ? step.tag[id] : '';
+      chips.push({ key: 'n' + id, html: `${L(id)}${v !== '' && v != null ? ` <span>${v}</span>` : ''}`, cls: 'dchip' + (step.st[id] === 'active' ? ' now' : '') });
+    }
+    this.q('.ds-done').hidden = !order.length;
+    this.q('.ds-note').textContent = DONE_NOTE[ctx.algo];
+    this.done.update(chips, { from: pos, to: null, dur });
+  }
+}
+const dsViews = [0, 1].map(() => { const el = document.createElement('div'); $('ds').appendChild(el); return new DSView(el); });
+
+const ABOUT = {
+  bfs: { use: 'for the fewest-strings route when every string counts the same, and to explore a graph layer by layer.', cost: 'O(V + E)', note: 'time; the queue can hold a whole layer at once.', world: 'friend-of-a-friend suggestions, web crawlers, and the fewest moves in a puzzle.' },
+  dfs: { use: 'to explore everything reachable, find cycles, put tasks in dependency order, or walk a maze.', cost: 'O(V + E)', note: 'time; memory grows with the depth of the thread.', world: 'maze solvers, the mark phase of garbage collectors, and build tools resolving dependencies.' },
+  dijkstra: { use: 'for the cheapest route when no string costs less than zero.', cost: 'O((V + E) log V)', note: 'with a binary heap as the priority queue.', world: 'turn-by-turn directions, and OSPF routing inside networks.' },
+};
+function renderAbout() {
+  const a = ABOUT[ui.algo];
+  $('about').innerHTML = `<div class="eyebrow">About ${ALGOS[ui.algo].name}</div>
+    <p><b>Use it</b> ${a.use}</p><p><b>Cost</b> <i>${a.cost}</i> ${a.note}</p><p><b>In the world</b> ${a.world}</p><p id="aboutRun"></p>`;
+}
+function examinedUpTo(steps, i) { let n = 0; for (let k = 0; k <= i; k++) if (FOCUS_EDGE.has(steps[k].kind) && steps[k].kind !== 'back') n++; return n; }
+
+function showStep(i) {
+  const prog = player.prog, st = i >= 0 ? prog.steps[i] : null;
+  let chips = '';
+  if (prog.mode === 'race') {
+    chips = prog.nets.map((c, j) => {
+      const s = st && st.status[j], name = ALGOS[c.algo].name;
+      const txt = !st ? 'ready' : s ? (s.kind === 'found' || s.kind === 'path' ? `reached ${c.g.label(c.target)}` : c.target != null ? 'no route' : 'done') : `${st.visited[j]} visited`;
+      return `<span class="chip${s && (s.kind === 'found' || s.kind === 'path') ? ' cobalt' : ''}">${name} · ${txt}</span>`;
+    }).join('');
+  }
+  plac.set({
+    op: prog.title,
+    stepno: prog.steps.length ? `${prog.mode === 'race' ? 'Tick' : 'Step'} ${i + 1} / ${prog.steps.length}` : '',
+    head: st ? st.head : prog.intro.head,
+    body: st ? st.body : prog.intro.body,
+    chips,
+  });
+  transport.mark(i);
+  // the live data structure
+  const dur = REDUCED || !player.prog ? 0 : Math.max(140, Math.min(900, 420 / player.speed));
+  if (prog.mode === 'race') {
+    prog.nets.forEach((c, j) => { dsViews[j].root.hidden = false; dsViews[j].render(c, i >= 0 ? tickEnd(c, i) : -1, dur, true); });
+    renderScore(i);
+  } else {
+    dsViews[0].root.hidden = false; dsViews[1].root.hidden = true;
+    dsViews[0].render(prog.nets[0], i, dur, false);
+  }
+  const c0 = prog.nets[0], fi = prog.mode === 'race' ? (i >= 0 ? tickEnd(c0, i) : -1) : i;
+  const run = $('aboutRun');
+  if (run) run.textContent = `This net: V = ${prog.graph.size}, E = ${prog.graph.edges.size}.` + (fi >= 0 && prog.mode !== 'race' ? ` So far ${plural(c0.steps[fi].visited, 'knot')} processed and ${plural(examinedUpTo(c0.steps, fi), 'string')} examined.` : '');
+}
+function renderScore(i) {
+  const prog = player.prog;
+  $('score').innerHTML = '<div class="eyebrow">Race · one tick per knot</div>' + prog.nets.map((c, j) => {
+    const st = i >= 0 ? prog.steps[i] : null, s = st && st.status[j];
+    const txt = !st ? 'waiting for the start' : s ? (s.kind === 'found' || s.kind === 'path' ? `<span class="won">reached ${c.g.label(c.target)} in ${plural(s.tick, 'tick')}</span> · ${plural(s.strings, 'string')}` : c.target != null ? `cannot reach ${c.g.label(c.target)}` : `done in ${plural(s.tick, 'tick')}`) : `${plural(st.visited[j], 'knot')} visited`;
+    return `<div class="srow"><b>${ALGOS[c.algo].name}</b><span>${txt}</span></div>`;
+  }).join('');
+}
+function refreshAfterStep() {
+  transport.updatePlayUI();
+  const g = player.prog.graph;
+  $('mstats').textContent = `${plural(g.size, 'knot')} · ${plural(g.edges.size, 'string')}${g.directed ? ' · directed' : ''}`;
+  updateInspector();
+}
+
+// legend
+function lgDisc(st, label, sub, small) {
+  const s = small ? 22 : 30, r = s / 2;
+  const ring = st === 'target' ? `<circle cx="${r}" cy="${r}" r="${r - 1.6}" fill="none" stroke="#D1361E" stroke-width="2.2" stroke-dasharray="3.4 2.6"/>`
+    : `${st === 'active' ? `<circle cx="${r}" cy="${r}" r="${r - 1}" fill="rgba(35,70,168,.2)"/>` : ''}<circle cx="${r}" cy="${r}" r="${st === 'active' ? r - 4 : r - 1.6}" fill="${HEXOF[st]}"${st === 'unseen' ? ' stroke="#1B1A17" stroke-width="1.6"' : ''}/>`;
+  return `<div class="lg"><svg width="${s}" height="${s}" viewBox="0 0 ${s} ${s}" aria-hidden="true">${ring}</svg><div><b>${label}</b><span>${sub}</span></div></div>`;
+}
+function legendItems(small) {
+  const wait = { bfs: 'in the queue', dfs: 'on the stack', dijkstra: 'has a ticket' }[ui.mode === 'race' ? 'bfs' : ui.algo];
+  return lgDisc('unseen', 'Unvisited', 'not reached yet', small) + lgDisc('wait', 'Waiting', ui.mode === 'race' ? 'queued or stacked' : wait, small)
+    + lgDisc('active', 'Processing', 'being expanded now', small) + lgDisc('done', ui.algo === 'dijkstra' && ui.mode !== 'race' ? 'Settled' : 'Done', 'visited, or settled', small)
+    + lgDisc('target', 'Target', 'where the route ends', small);
+}
+function renderLegend() { $('legend').innerHTML = legendItems(true); $('helpLegend').innerHTML = legendItems(false); }
+
+// inspector
+function currentFine(j = 0) {
+  const prog = player.prog, c = prog.nets[j];
+  if (!c) return { c: null, step: null };
+  const i = player.idx;
+  const fi = prog.mode === 'race' ? (i >= 0 ? tickEnd(c, i) : -1) : i;
+  return { c, step: fi >= 0 ? c.steps[fi] : null };
+}
+function updateInspector() {
+  const id = ui.selected;
+  if (id == null) return;
+  if (!graph.nodes.has(id)) { closeInspector(); return; }
+  const { c, step } = currentFine(ui.selectedNet || 0);
+  const L = x => graph.label(x), st = step ? step.st[id] ?? 'unseen' : 'unseen';
+  const algo = c ? c.algo : ui.algo;
+  $('insDisc').innerHTML = discSVG(L(id), st, 56);
+  const stName = { unseen: 'Unvisited', wait: algo === 'bfs' ? 'In the queue' : algo === 'dfs' ? 'On the stack' : 'Has a ticket', active: 'Processing', done: algo === 'dijkstra' ? 'Settled' : 'Visited' }[st];
+  const tag = step ? step.tag[id] : null;
+  const sub = algo === 'dijkstra' ? (tag == null || tag === '∞' ? 'no route found yet' : st === 'done' || st === 'active' ? `${tag} from ${L(c.start)}, final` : `${tag} so far, may still drop`)
+    : algo === 'bfs' ? (tag == null ? 'not reached yet' : `${plural(tag, 'string')} from ${L(c.start)}`) : (tag == null ? 'not reached yet' : `visit no. ${tag}`);
+  const roles = [id === ui.start ? 'start' : '', id === ui.target ? 'target' : ''].filter(Boolean).join(' · ');
+  const par = step && step.parent[id] != null ? ` · via ${L(step.parent[id])}` : '';
+  $('insState').innerHTML = `<b>${L(id)} · ${stName}</b><span>${roles ? roles + ' · ' : ''}${sub}${par}</span>`;
+  $('insK1').textContent = algo === 'dijkstra' ? 'Distance' : algo === 'bfs' ? 'Layer' : 'Visit no.';
+  $('insV1').textContent = tag == null ? '—' : tag;
+  $('insV2').textContent = step && step.parent[id] != null ? L(step.parent[id]) : '—';
+  const out = graph.neighbors(id), inc = graph.incoming(id);
+  const chip = (x, w) => `<span class="nb">${L(x)} <i>${w}</i></span>`;
+  $('insNb').innerHTML = `<div class="lab">${graph.directed ? `Strings out · ${out.length}` : `Neighbors · ${out.length}`}</div><div class="nbl">${out.map(n => chip(n.to, n.w)).join('') || '<span class="lab">none</span>'}</div>`
+    + (graph.directed ? `<div class="lab">Strings in · ${inc.length}</div><div class="nbl">${inc.map(n => chip(n.from, n.w)).join('') || '<span class="lab">none</span>'}</div>` : '');
+  $('insStart').disabled = id === ui.start;
+  $('insTarget').textContent = id === ui.target ? 'Clear target' : 'Make target';
+  $('insTarget').disabled = id === ui.start;
+}
+function select(id, j = 0) {
+  ui.selected = id; ui.selectedNet = j;
+  $('inspector').hidden = false; document.body.classList.add('inspecting');
+  updateInspector(); measureFree();
+}
+function closeInspector(quiet) { ui.selected = null; $('inspector').hidden = true; document.body.classList.remove('inspecting'); if (!quiet) measureFree(); }
+
+/* ---------- controls ---------- */
+const HINT = {
+  move: 'Drag a knot to move it. Click a knot to inspect it, or a weight to change it.',
+  node: 'Click an empty spot on the plinth to add a knot.',
+  edge: 'Click one knot, then another, to tie a string between them.',
+  delete: 'Click a knot or a string to remove it.',
+};
+let hintTimer = 0;
+function hint(msg, err = false) {
+  clearTimeout(hintTimer);
+  $('hint').textContent = msg || HINT[ui.tool];
+  $('hint').classList.toggle('err', !!err);
+  if (err) hintTimer = setTimeout(() => hint(), 5200);
+}
+function syncControls() {
+  document.querySelectorAll('#algoSeg button').forEach(b => b.setAttribute('aria-pressed', String(ui.mode === 'race' ? b.dataset.a === 'race' : b.dataset.a === ui.algo)));
+  $('racePick').hidden = ui.mode !== 'race';
+  $('raceA').value = ui.race[0]; $('raceB').value = ui.race[1];
+  const ids = graph.sortedIds(), opts = ids.map(id => `<option value="${id}">${graph.label(id)}</option>`).join('');
+  $('selStart').innerHTML = opts || '<option value="">—</option>';
+  $('selStart').value = ui.start ?? '';
+  $('selTarget').innerHTML = '<option value="">None</option>' + ids.filter(id => id !== ui.start).map(id => `<option value="${id}">${graph.label(id)}</option>`).join('');
+  $('selTarget').value = ui.target ?? '';
+  $('selTarget').classList.toggle('has', ui.target != null);
+  $('selPreset').value = ui.preset;
+  $('bShuffle').hidden = !PRESETS[ui.preset]?.random;
+  $('sel3').classList.toggle('shuffle', !!PRESETS[ui.preset]?.random);
+  document.querySelectorAll('#toolRow .btn').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.t === ui.tool)));
+  $('score').hidden = ui.mode !== 'race';
+  $('about').hidden = ui.mode === 'race';
+  if (ui.mode !== 'race') renderAbout();
+  renderLegend();
+}
+$('selPreset').innerHTML = Object.entries(PRESETS).map(([k, p]) => `<option value="${k}">${p.name}</option>`).join('') + '<option value="custom" hidden>Your own</option>';
+function markCustom() { if (ui.preset !== 'custom') { ui.preset = 'custom'; } }
+
+$('algoSeg').addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  Sound.ensure();
+  if (b.dataset.a === 'race') ui.mode = 'race';
+  else { ui.mode = 'single'; ui.algo = b.dataset.a; }
+  rebuild({ autoplay: true });
+});
+for (const [id, j] of [['raceA', 0], ['raceB', 1]]) $(id).addEventListener('change', e => {
+  const v = e.target.value, other = ui.race[1 - j];
+  if (v === other) ui.race[1 - j] = ui.race[j]; // swap rather than race an algorithm against itself
+  ui.race[j] = v;
+  rebuild({ autoplay: true });
+});
+$('selStart').addEventListener('change', e => { ui.start = +e.target.value; rebuild({ autoplay: true }); });
+$('selTarget').addEventListener('change', e => { ui.target = e.target.value === '' ? null : +e.target.value; rebuild({ autoplay: true }); });
+$('selPreset').addEventListener('change', e => { if (e.target.value !== 'custom') loadPreset(e.target.value); });
+$('bShuffle').addEventListener('click', () => loadPreset(ui.preset, { seed: 1 + Math.floor(Math.random() * 1e6) }));
+$('toolRow').addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  ui.tool = b.dataset.t; ui.pendingEdge = null;
+  syncControls(); hint();
+});
+$('optDirected').addEventListener('change', e => {
+  const merged = graph.setDirected(e.target.checked);
+  markCustom();
+  rebuild();
+  hint(e.target.checked ? 'Strings now point from the first knot you tied to the second.' : merged ? `${plural(merged, 'pair')} of strings joined the same knots; each kept its cheaper weight.` : 'Strings now work both ways.');
+});
+
+/* ---------- editing on the plinth ---------- */
+const ray = new THREE.Raycaster(), ndc = new THREE.Vector2(), plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), hitP = new THREE.Vector3();
+function planePoint(e) {
+  ndc.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
+  ray.setFromCamera(ndc, camera);
+  return ray.ray.intersectPlane(plane, hitP) ? hitP : null;
+}
+function netAt(p) { // which plinth a point on the floor belongs to
+  return player.prog.nets.length < 2 || p.z < 0 ? 0 : 1;
+}
+const offOf = j => { const c = player.prog.nets[j]; return { ox: c ? c.ox : 0, oz: c ? c.oz : 0 }; };
+function pickNode(e) {
+  let best = null, bd = Infinity;
+  for (const w of nodeWorld.values()) {
+    if (w.gen !== gen || w.r < 0.1) continue;
+    _v.set(w.x, w.y, w.z).project(camera);
+    const sx = (_v.x + 1) / 2 * innerWidth, sy = (1 - _v.y) / 2 * innerHeight;
+    _p.set(w.x, w.y, w.z).addScaledVector(camRight, w.r).project(camera);
+    const pr = Math.abs((_p.x - _v.x) / 2 * innerWidth);
+    const d = Math.hypot(e.clientX - sx, e.clientY - sy);
+    if (d < pr + 8 && d < bd) { bd = d; best = w; }
+  }
+  return best ? { j: best.j, id: best.id } : null;
+}
+function pickEdge(e) {
+  let best = null, bd = Infinity;
+  const pt = [0, 0, 0];
+  const scr = (x, y, z) => { _v.set(x, y, z).project(camera); return [(_v.x + 1) / 2 * innerWidth, (1 - _v.y) / 2 * innerHeight]; };
+  for (const d of edgeDraw) {
+    if (d.gen !== gen) continue;
+    if (d.showW) { const [sx, sy] = scr(d.wx, d.wy, d.wz); const dd = Math.hypot(e.clientX - sx, e.clientY - sy); if (dd < 16 && dd < bd) { bd = dd; best = d; } }
+    let prev = null;
+    for (let k = 0; k <= 10; k++) {
+      curveAt(d.ax, d.ay, d.az, d.bx, d.by, d.bz, d.sag, k / 10, pt);
+      const s = scr(pt[0], pt[1], pt[2]);
+      if (prev) {
+        const vx = s[0] - prev[0], vy = s[1] - prev[1], l2 = vx * vx + vy * vy || 1;
+        const u = clamp01(((e.clientX - prev[0]) * vx + (e.clientY - prev[1]) * vy) / l2);
+        const dd = Math.hypot(e.clientX - prev[0] - u * vx, e.clientY - prev[1] - u * vy);
+        if (dd < 9 && dd + 4 < bd) { bd = dd + 4; best = d; }
+      }
+      prev = s;
+    }
+  }
+  return best;
+}
+function edit(fn, { hintMsg = null } = {}) {
+  const res = fn();
+  if (res && res.error) { hint(res.error, true); return res; }
+  markCustom();
+  rebuild({ catchDur: 0.45 });
+  if (hintMsg) hint(hintMsg);
+  return res;
+}
+function addNodeAt(p, j) {
+  const { ox, oz } = offOf(j);
+  const x = Math.max(-REGION.x, Math.min(REGION.x, p.x - ox)), z = Math.max(-REGION.z, Math.min(REGION.z, p.z - oz));
+  for (const n of graph.nodes.values()) if (Math.hypot(n.x - x, n.z - z) < 1.0) { hint(`Too close to ${n.label}. Click a clear spot on the plinth.`, true); return; }
+  edit(() => graph.addNode(+x.toFixed(2), +z.toFixed(2)), { hintMsg: 'Knot added. Tie it in with + Edge.' });
+}
+function tieEdge(a, b) {
+  const A = graph.nodes.get(a), B = graph.nodes.get(b);
+  const w = Math.max(1, Math.min(99, Math.round(Math.hypot(A.x - B.x, A.z - B.z) * 1.5)));
+  const res = edit(() => graph.addEdge(a, b, w), { hintMsg: `Tied ${graph.label(a)}${graph.directed ? '→' : '–'}${graph.label(b)}. Set its weight, or keep ${w}.` });
+  if (res && !res.error) openWeight(res.id);
+}
+function deleteNode(id) {
+  const L = graph.label(id);
+  edit(() => { graph.removeNode(id); return {}; }, { hintMsg: `${L} and its strings are gone.` });
+}
+
+const pointers = new Set();
+let down = null;
+canvas.addEventListener('pointerdown', e => {
+  pointers.add(e.pointerId);
+  Sound.ensure();
+  down = pointers.size === 1 ? { x: e.clientX, y: e.clientY, t: performance.now(), node: pickNode(e) } : null;
+  if (pointers.size > 1 && ui.drag) endDrag();
+  if (down && down.node && ui.tool === 'move' && e.button === 0) {
+    controls.enabled = false; // this press moves a knot, not the camera
+    down.dragReady = true;
+  } else if (e.button === 2 || e.button === 1 || pointers.size > 1 || e.shiftKey || e.ctrlKey || e.metaKey) framer.manual();
+}, { capture: true });
+canvas.addEventListener('pointermove', e => {
+  const p = planePoint(e);
+  if (ui.pendingEdge && p) ui.pointer = { x: p.x, z: p.z };
+  if (down && down.dragReady && !ui.drag && Math.hypot(e.clientX - down.x, e.clientY - down.y) > 5) startDrag(down.node);
+  if (ui.drag && p) {
+    const { ox, oz } = offOf(ui.drag.j);
+    ui.drag.x = Math.max(-REGION.x, Math.min(REGION.x, p.x - ox - ui.drag.dx));
+    ui.drag.z = Math.max(-REGION.z, Math.min(REGION.z, p.z - oz - ui.drag.dz));
+    patchDrag();
+    return;
+  }
+  if (!pointers.size && !isPhone()) canvas.style.cursor = pickNode(e) ? (ui.tool === 'move' ? 'grab' : 'pointer') : ui.tool === 'node' ? 'copy' : ui.tool === 'move' ? 'grab' : 'default';
+});
+function startDrag(hit) {
+  const n = graph.nodes.get(hit.id);
+  if (!n) return;
+  if (player.idx >= 0 || player.tr) rebuild({ catchDur: 0.35 }); // editing resets the run
+  ui.drag = { id: hit.id, j: hit.j, x: n.x, z: n.z, dx: 0, dz: 0 };
+  const w = nodeWorld.get(`${hit.j}|${gen}:${hit.id}`);
+  if (w && down) { const pp = planePoint({ clientX: down.x, clientY: down.y }), o = offOf(hit.j); if (pp) { ui.drag.dx = pp.x - o.ox - n.x; ui.drag.dz = pp.z - o.oz - n.z; } }
+  canvas.style.cursor = 'grabbing';
+}
+// while dragging, the start pose itself follows the knot so nothing jumps when the drag ends
+function patchDrag() {
+  const d = ui.drag, n = graph.nodes.get(d.id);
+  if (!n) return;
+  n.x = +d.x.toFixed(2); n.z = +d.z.toFixed(2);
+  const pl = plinthOf(graph), offs = player.prog.mode === 'race' ? raceOffsets(pl) : [{ ox: 0, oz: 0 }];
+  player.prog.startPose.nets.forEach((net, j) => {
+    const nn = net.nodes.get(`${net.gen}:${d.id}`);
+    if (nn) { nn.x = n.x; nn.z = n.z; }
+    net.plinth = { ...pl }; net.ox = offs[j].ox; net.oz = offs[j].oz;
+  });
+}
+function endDrag() {
+  if (!ui.drag) return;
+  const from = player.pose();
+  ui.drag = null;
+  markCustom();
+  rebuild({ from, catchDur: 0.25 });
+  canvas.style.cursor = '';
+}
+const endPointer = e => {
+  pointers.delete(e.pointerId);
+  controls.enabled = true;
+  if (ui.drag) { endDrag(); down = null; return; }
+  if (e.type === 'pointerup' && down && Math.hypot(e.clientX - down.x, e.clientY - down.y) < 7 && performance.now() - down.t < 700) click(e, down.node);
+  down = null;
+};
+canvas.addEventListener('pointerup', endPointer);
+canvas.addEventListener('pointercancel', endPointer);
+canvas.addEventListener('wheel', () => framer.manual(), { passive: true });
+canvas.addEventListener('contextmenu', e => e.preventDefault());
+controls.addEventListener('start', () => { if (controls.enabled) framer.turned(); });
+
+function click(e, hitNode) {
+  const tool = ui.tool;
+  if (hitNode) {
+    if (tool === 'delete') { deleteNode(hitNode.id); return; }
+    if (tool === 'edge') {
+      if (!ui.pendingEdge) { ui.pendingEdge = hitNode; ui.pointer = null; hint(`Now click the knot to tie ${graph.label(hitNode.id)} to.`); return; }
+      if (ui.pendingEdge.id === hitNode.id) { ui.pendingEdge = null; hint(); return; }
+      const a = ui.pendingEdge.id;
+      ui.pendingEdge = null;
+      tieEdge(a, hitNode.id);
+      return;
+    }
+    closeWeight();
+    select(hitNode.id, hitNode.j);
+    return;
+  }
+  const edge = pickEdge(e);
+  if (edge) {
+    if (tool === 'delete') { const E = graph.edges.get(edge.id); const nm = `${graph.label(E.a)}–${graph.label(E.b)}`; edit(() => { graph.removeEdge(edge.id); return {}; }, { hintMsg: `String ${nm} removed.` }); return; }
+    if (tool === 'move' || tool === 'edge') { ui.pendingEdge = null; openWeight(edge.id); return; }
+  }
+  if (tool === 'node') { const p = planePoint(e); if (p) addNodeAt(p, netAt(p)); return; }
+  if (tool === 'edge' && ui.pendingEdge) { ui.pendingEdge = null; hint(); return; }
+  closeWeight();
+  if (ui.selected != null) closeInspector();
+}
+
+/* ---------- the weight card ---------- */
+function openWeight(id) {
+  const E = graph.edges.get(id);
+  if (!E) return;
+  ui.wEdge = id;
+  $('wname').textContent = `${graph.label(E.a)}${graph.directed ? '→' : '–'}${graph.label(E.b)}`;
+  $('wval').value = E.w; $('werr').textContent = ''; $('wval').setAttribute('aria-invalid', 'false');
+  const pop = $('wpop');
+  pop.hidden = false;
+  placeWeight();
+  $('wval').focus(); $('wval').select();
+}
+function placeWeight() {
+  if (ui.wEdge == null || isPhone()) return;
+  const d = edgeDraw.find(x => x.id === ui.wEdge && x.gen === gen);
+  if (!d) return;
+  const m = curveAt(d.ax, d.ay, d.az, d.bx, d.by, d.bz, d.sag, 0.5, tmp3);
+  _v.set(m[0], m[1], m[2]).project(camera);
+  const x = (_v.x + 1) / 2 * innerWidth, y = (1 - _v.y) / 2 * innerHeight, pop = $('wpop');
+  const w = pop.offsetWidth, h = pop.offsetHeight;
+  pop.style.left = `${Math.max(12, Math.min(innerWidth - w - 12, x - w / 2))}px`;
+  pop.style.top = `${Math.max(12, Math.min(innerHeight - h - 12, y + 24))}px`;
+}
+function closeWeight() { ui.wEdge = null; $('wpop').hidden = true; }
+$('wpop').addEventListener('submit', e => {
+  e.preventDefault();
+  const id = ui.wEdge, raw = $('wval').value;
+  const bad = checkWeight(raw);
+  if (bad) { $('werr').textContent = bad; $('wval').setAttribute('aria-invalid', 'true'); return; }
+  const E = graph.edges.get(id);
+  if (E && E.w !== +raw.trim()) { graph.setWeight(id, raw); markCustom(); rebuild({ catchDur: 0.45 }); hint(`${$('wname').textContent} now weighs ${+raw.trim()}.`); }
+  closeWeight();
+});
+$('wDel').addEventListener('click', () => { const id = ui.wEdge; closeWeight(); edit(() => { graph.removeEdge(id); return {}; }, { hintMsg: 'String removed.' }); });
+$('wClose').addEventListener('click', closeWeight);
+
+/* ---------- inspector buttons ---------- */
+$('insClose').addEventListener('click', () => closeInspector());
+$('insStart').addEventListener('click', () => { ui.start = ui.selected; if (ui.target === ui.start) ui.target = null; rebuild({ autoplay: true }); });
+$('insTarget').addEventListener('click', () => { ui.target = ui.target === ui.selected ? null : ui.selected; rebuild({ autoplay: ui.target != null }); });
+$('insDel').addEventListener('click', () => { const id = ui.selected; closeInspector(); deleteNode(id); });
+
+bindSoundToggle($('bSound'));
+$('bFrame').addEventListener('click', () => framer.reset());
+const help = bindHelp();
+bindKeys({
+  player,
+  isTyping: e => e.target === $('wval'),
+  onEscape: () => {
+    if (help.isOpen()) help.close();
+    else if (ui.wEdge != null) closeWeight();
+    else if (ui.pendingEdge) { ui.pendingEdge = null; hint(); }
+    else if (ui.selected != null) closeInspector();
+  },
+  onHelp: help.open,
+  onGesture: () => Sound.ensure(),
+});
+addEventListener('keydown', e => {
+  if ((e.key === 'Delete' || e.key === 'Backspace') && ui.selected != null && !['INPUT', 'SELECT', 'TEXTAREA'].includes(e.target.tagName)) { e.preventDefault(); const id = ui.selected; closeInspector(); deleteNode(id); }
+});
+mountNav({ current: 'graphs' });
+
+// panels live in the right column on a desk and in the sheet on a phone
+function placePanels() {
+  const phone = isPhone();
+  for (const id of ['score', 'ds', 'about']) { const el = $(id); if (phone ? el.parentElement !== dock : el.parentElement !== side) (phone ? dock : side).appendChild(el); }
+  measureFree();
+}
+new ResizeObserver(measureFree).observe(dock);
+new ResizeObserver(measureFree).observe(side);
+stage.onResize(placePanels);
+
+/* =====================================================================
+   9. Start: the textbook net drops onto its plinth
+   ===================================================================== */
+graph = PRESETS.textbook.make();
+ui.start = graph.byLabel('A'); ui.target = graph.byLabel('H');
+placePanels();
+{
+  const prog = makeProgram(graph.clone());
+  prog.intro = { head: 'A net of strings on a plinth.', body: 'Each knot is a node and each string an edge, as long as its weight. Press play to watch Dijkstra lift the net from A until the cheapest route to H pulls taut, or pick BFS or DFS.' };
+  player.load(prog, { autoplay: false });
+  player.intro(dropIn(prog.startPose));
+  syncControls(); showStep(-1); refreshAfterStep(); hint();
+}
+measureFree();
+framer.place(30);
+
+let last = performance.now(), liftCam = 0;
+renderer.setAnimationLoop(now => {
+  const dt = Math.min(0.05, Math.max(0, (now - last) / 1000)); last = now;
+  clock += dt;
+  player.tick(dt);
+  const P = player.pose();
+  applyPose(P, dt);
+  // the camera drops to watch a lift, and leans in on the payoff
+  let maxH = 0;
+  for (const net of P.nets) for (const n of net.nodes.values()) if (n.s > 0.1) maxH = Math.max(maxH, n.h);
+  liftCam += (clamp01(maxH / 2.2) - liftCam) * (1 - Math.exp(-dt * 2));
+  let focus = null;
+  if (P.focus) { const w = nodeWorld.get(`${P.focus.j}|${P.focus.node}`); if (w) focus = { x: w.x, y: w.y, z: w.z, w: P.focus.w, zoom: 0.2 }; }
+  controls.update();
+  framer.update(dt, frameBox(P), focus, { phi: lerp(PHI_FLAT, PHI_LIFT, liftCam), rate: 1.3 });
+  camera.lookAt(controls.target);
+  fitLights(P);
+  if (P.callout) {
+    const c = P.callout, w = nodeWorld.get(`${c.j}|${c.node}`);
+    placeCallout(w ? { x: w.x, y: w.y + 0.15, z: w.z, off: w.r + 0.35, side: 'r', text: c.text, tone: c.tone, a: c.a } : null);
+  } else placeCallout(null);
+  placeWeight();
+  renderer.render(scene, camera);
+});
+
+// hooks for automated checks
+window.__graph = {
+  camera, renderer, player, ui, PRESETS, get graph() { return graph; }, rebuild, loadPreset, nodeScreen, currentPose: () => player.pose(),
+  setMode(m, a) { if (m === 'race') { ui.mode = 'race'; if (a) ui.race = a; } else { ui.mode = 'single'; ui.algo = m; } rebuild({ autoplay: false, catchDur: 0 }); },
+  setSpeed: s => transport.setSpeed(s), seek: i => player.seek(i), stepBy: d => player.stepBy(d), togglePlay: () => player.togglePlay(),
+  freezeAt: (i, t) => player.freezeAt(i, t), unfreeze() { player.freeze = false; }, counts: () => ({ rods: nR, balls: nB, discs: nD, cones: nC, labels: LB.geo.instanceCount }),
+  advance(sec) { // test hook: run the animation clock forward without waiting for frames
+    for (let k = 0; k < sec * 60; k++) { player.tick(1 / 60); if (k % 6 === 0) applyPose(player.pose(), 0.1); }
+  },
+  settle() { // test hook: let the camera finish easing at once
+    for (let k = 0; k < 40; k++) { const P = player.pose(); applyPose(P, 0); camera.updateMatrixWorld(); framer.update(0.25, frameBox(P), null, { phi: lerp(PHI_FLAT, PHI_LIFT, liftCam), rate: 1.3 }); camera.lookAt(controls.target); }
+  },
+  bench(n = 60) { // JavaScript cost of one frame: pose, drawing lists, framing (no GPU)
+    const t0 = performance.now();
+    for (let k = 0; k < n; k++) { const P = player.pose(); applyPose(P, 1 / 60); frameBox(P); fitLights(P); }
+    return (performance.now() - t0) / n;
+  },
+};
+</script>
+</body>
+</html>
