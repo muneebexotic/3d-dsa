@@ -10,7 +10,7 @@ An exhibition of algorithms in motion. Each chapter turns one data structure int
 | 2   | [Graph Net](https://dsa.muscodes.com/graphs/): BFS, DFS and Dijkstra on a net of strings, with race mode and a graph editor                         | live          |
 | 3   | [Pointer Chain](https://dsa.muscodes.com/lists/): arrays, singly and doubly linked lists, stacks and a ring-buffer queue, with every pointer a wire | live          |
 | 4   | [Hash Clock](https://dsa.muscodes.com/hashing/): a hash table as a clock of buckets, with chaining, linear probing, load factor and rehashing       | live          |
-| 5   | Heap                                                                                                                                                | in the studio |
+| 5   | [Heap Pyramid](https://dsa.muscodes.com/heap/): a binary heap as one array folded into a tree, with push, pop, heapify and Dijkstra's queue         | live          |
 | 6   | Sorting                                                                                                                                             | in the studio |
 | 7   | Trie                                                                                                                                                | in the studio |
 
@@ -47,6 +47,7 @@ avl/index.html              No. 1, AVL Mobile (markup only)
 graphs/index.html           No. 2, Graph Net (markup only)
 lists/index.html            No. 3, Pointer Chain (markup only)
 hashing/index.html          No. 4, Hash Clock (markup only)
+heap/index.html             No. 5, Heap Pyramid (markup only)
 public/                     files served as-is (favicon)
 src/
   core/                     shared by every chapter: step player, Three.js stage,
@@ -62,6 +63,8 @@ src/
                             code listings, cost table, poses, motion, scene, panels, main
   chapters/hashing/         Hash Clock: hash functions, the table (chaining and probing), the
                             recorder and operations, poses, motion, scene, work chart, main
+  chapters/heap/            Heap Pyramid: the heap, the recorder and operations, Graph Net's
+                            Dijkstra run, poses, motion, scene, work and row charts, main
 tests/
   unit/                     Vitest, mirrors src/
   e2e/                      Playwright

@@ -3,7 +3,7 @@
 
 import { byId } from '../core/dom';
 import { CHAPTERS, chapterPath, type Chapter } from '../site/chapters';
-import { THUMBNAILS, drawChain, drawClock, drawMobile, drawNet } from './art';
+import { THUMBNAILS, drawChain, drawClock, drawMobile, drawNet, drawPyramid } from './art';
 
 function card(c: Chapter): string {
   const body = `<div class="thumb"><svg data-t="${c.slug}" viewBox="${c.live ? '0 0 480 220' : '0 0 320 200'}" aria-hidden="true"></svg></div>
@@ -22,7 +22,8 @@ for (const svg of cards.querySelectorAll<SVGSVGElement>('svg[data-t]')) THUMBNAI
 drawMobile(byId<SVGSVGElement>('artMobile'));
 drawNet(byId<SVGSVGElement>('artNet'));
 drawChain(byId<SVGSVGElement>('artChain'), { W: 640, H: 200 });
-drawClock(byId<SVGSVGElement>('artClock'), { W: 640, H: 200 });
+drawClock(byId<SVGSVGElement>('artClock'), { W: 320, H: 250 });
+drawPyramid(byId<SVGSVGElement>('artPyramid'), { W: 320, H: 250 });
 
 const top = byId('top');
 addEventListener('scroll', () => top.classList.toggle('scrolled', scrollY > 8), { passive: true });

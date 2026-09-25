@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Heap Pyramid: binary heaps and priority queues in 3D · 3D Data Structures</title>
+    <meta
+      name="description"
+      content="See how a binary heap works. Watch an array fold into a tree, keys sift up and down, heapify build a heap in O(n), and Dijkstra's priority queue hand out tickets in order."
+    />
+    <link rel="canonical" href="%VITE_SITE_URL%/heap/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="3D Data Structures" />
+    <meta property="og:title" content="Heap Pyramid: binary heaps and priority queues in 3D" />
+    <meta
+      property="og:description"
+      content="One array, read as a tree. Watch keys climb and sink, heapify settle a whole pile in O(n), and Dijkstra's tickets come off the top."
+    />
+    <meta property="og:url" content="%VITE_SITE_URL%/heap/" />
+    <meta name="theme-color" content="#ECE6DA" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/src/chapters/heap/heap.css" />
+  </head>
+  <body>
+    <canvas
+      id="stage"
+      tabindex="-1"
+      aria-label="A binary heap drawn as a pyramid of keys standing over the array that holds them, with an out tray in front. Use the controls to push and pop keys, heapify, or replay Dijkstra's queue."
+    ></canvas>
+    <div id="callout" aria-hidden="true"></div>
+
+    <aside id="dock" aria-label="Controls">
+      <header id="masthead">
+        <div class="eyebrow">3D Data Structures · No. 5</div>
+        <h1>Heap Pyramid</h1>
+        <div id="mstats" class="eyebrow"></div>
+        <p class="sub">
+          One array, read as a tree. The smallest key is always on top, and it never takes more than a climb or a sink
+          to keep it there.
+        </p>
+      </header>
+
+      <section id="setup" class="card" aria-label="Heap and operations">
+        <div class="seg" id="orderSeg" role="group" aria-label="Which key goes on top">
+          <button type="button" data-o="min" aria-pressed="true">Min-heap</button>
+          <button type="button" data-o="max" aria-pressed="false">Max-heap</button>
+        </div>
+        <form id="opform" autocomplete="off" novalidate>
+          <div class="field">
+            <label for="key">Key (0–99)</label>
+            <input
+              id="key"
+              name="key"
+              type="text"
+              inputmode="numeric"
+              enterkeyhint="done"
+              placeholder="blank picks one"
+              maxlength="4"
+              aria-describedby="err"
+            />
+          </div>
+          <button class="btn primary" id="bPush" type="submit">Push</button>
+        </form>
+        <div id="err" role="alert"></div>
+        <div id="opbtns" role="group" aria-label="Operations">
+          <button class="btn" id="bPop" type="button">Pop the min</button>
+          <button class="btn" id="bRandom" type="button">Push 4 random</button>
+          <button class="btn" id="bHeapify" type="button">Heapify 15</button>
+          <button class="btn" id="bDrain" type="button">Pop them all</button>
+          <button class="btn accent" id="bDijkstra" type="button">Dijkstra’s queue</button>
+        </div>
+        <div class="row2">
+          <div class="seg mini" id="viewSeg" role="group" aria-label="View">
+            <button type="button" data-v="tree" aria-pressed="true">Tree</button>
+            <button type="button" data-v="array" aria-pressed="false">Array</button>
+          </div>
+          <button class="btn quiet" id="bReset" type="button">Reset</button>
+        </div>
+      </section>
+
+      <section id="placard" class="card" aria-live="polite">
+        <div class="prow">
+          <span class="eyebrow" id="opname">Heap Pyramid</span><span class="eyebrow" id="stepno"></span>
+        </div>
+        <div id="head"></div>
+        <div id="body"></div>
+        <div id="chips"></div>
+      </section>
+
+      <div id="transport"></div>
+    </aside>
+
+    <div id="side">
+      <aside id="inspector" class="card" hidden aria-label="Selected key">
+        <div class="prow">
+          <span class="eyebrow">Selected</span
+          ><button class="x" id="insClose" type="button" aria-label="Close">×</button>
+        </div>
+        <div class="ins-top">
+          <span id="insDisc"></span>
+          <div id="insState"></div>
+        </div>
+        <div class="ins-grid" id="insGrid"></div>
+        <div id="insNote"></div>
+      </aside>
+      <section id="net" class="card" hidden aria-label="Graph Net's Textbook graph">
+        <div class="prow">
+          <span class="eyebrow">Graph Net · Textbook</span><a class="eyebrow faint" href="/graphs/">Open ›</a>
+        </div>
+        <div id="netMap"></div>
+      </section>
+      <section id="code" class="card" aria-label="The code">
+        <div class="prow">
+          <span class="eyebrow" id="codeTitle">The code</span><span class="eyebrow faint">pseudocode</span>
+        </div>
+        <ol id="codeLines"></ol>
+      </section>
+      <section id="work" class="card" aria-label="What each operation cost">
+        <div class="prow"><span class="eyebrow">Swaps per operation</span></div>
+        <div id="workChart"></div>
+      </section>
+      <section id="cost" class="card" aria-label="Cost of each operation">
+        <div class="eyebrow" id="costTitle">Heap or array?</div>
+        <div id="costTable"></div>
+      </section>
+    </div>
+
+    <div id="tools">
+      <button class="icon" id="bSound" type="button" aria-pressed="true" aria-label="Sound">
+        <svg
+          class="snd-on"
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M4 9 L8 9 L13 5 L13 19 L8 15 L4 15 Z" />
+          <path d="M16.5 9 A4 4 0 0 1 16.5 15" />
+          <path d="M19 6.5 A7.5 7.5 0 0 1 19 17.5" /></svg
+        ><svg
+          class="snd-off"
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M4 9 L8 9 L13 5 L13 19 L8 15 L4 15 Z" />
+          <path d="M17 9.5 L22 14.5 M22 9.5 L17 14.5" />
+        </svg>
+      </button>
+      <button class="icon" id="bFrame" type="button" aria-label="Reset view">
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M4 9 L4 4 L9 4" />
+          <path d="M15 4 L20 4 L20 9" />
+          <path d="M20 15 L20 20 L15 20" />
+          <path d="M9 20 L4 20 L4 15" />
+          <circle cx="12" cy="12" r="2.2" />
+        </svg>
+      </button>
+      <button class="icon" id="bHelp" type="button" aria-label="How to read the pyramid">
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <circle cx="12" cy="12" r="9" />
+          <path d="M9.6 9.3 A2.5 2.5 0 1 1 12 12.4 L12 13.8" />
+          <path d="M12 17 L12 17.1" />
+        </svg>
+      </button>
+    </div>
+
+    <aside id="legend" class="card" aria-label="Legend"></aside>
+
+    <div id="help" hidden role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+      <div class="card">
+        <div class="prow">
+          <h2 id="helpTitle">How to read the pyramid</h2>
+          <button class="x" id="helpClose" type="button" aria-label="Close">×</button>
+        </div>
+        <p>
+          <b>A heap is one array.</b> The cells lie along the front of the plinth. Read them as a tree and cell 0 is the
+          top, cells 1 and 2 are its children, 3 to 6 the next row, and so on: the children of cell i are
+          <b>2i + 1</b> and <b>2i + 2</b>, and its parent is <b>(i − 1) / 2</b>, rounded down. No pointers are stored.
+          The pyramid behind is that same array, folded into rows. Switch to <b>Array</b> to unfold it.
+        </p>
+        <p>
+          <b>One rule holds on every wire:</b> a parent is never bigger than its children (in a min-heap). So the
+          smallest key is always on top. A red wire is where the rule is broken for a moment. A <b>push</b> goes in at
+          the end and climbs past bigger parents. A <b>pop</b> takes the top, moves the last key up, and lets it sink
+          past smaller children. Each walks one path, so it is O(log n).
+        </p>
+        <div class="lgwrap" id="helpLegend"></div>
+        <p>
+          <b>Heapify</b> builds a heap from any array by sinking every parent, from the last one back to the top. Most
+          keys sit near the bottom with little room to sink, so it is O(n). <b>Dijkstra’s queue</b> replays Graph Net’s
+          shortest-path run with this heap as its priority queue.
+        </p>
+        <div class="keys">
+          Drag to orbit · scroll or pinch to zoom · right-drag or two fingers to pan · click a key to inspect it.<br /><kbd
+            >Space</kbd
+          >
+          play or pause · <kbd>←</kbd> <kbd>→</kbd> step · <kbd>Enter</kbd> push the key · <kbd>?</kbd> this card
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="/src/chapters/heap/main.ts"></script>
+  </body>
+</html>

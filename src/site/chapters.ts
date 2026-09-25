@@ -65,12 +65,13 @@ export const CHAPTERS: readonly Chapter[] = [
   {
     no: 5,
     slug: 'heap',
-    title: 'Heap',
+    title: 'Heap Pyramid',
     short: 'Heap',
-    topic: 'Priority queues',
-    live: false,
+    topic: 'Heaps & priority queues',
+    live: true,
     blurb:
-      'The structure inside Dijkstra’s priority queue: sift up, sift down, and why the smallest item is always on top.',
+      'One array, folded into a tree. Keys climb and sink along a single path, heapify settles a whole pile in O(n), and Dijkstra’s tickets come off the top in order.',
+    tags: ['Sift up · sift down', 'Heapify · priority queue'],
   },
   {
     no: 6,

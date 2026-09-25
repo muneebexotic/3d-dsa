@@ -93,9 +93,42 @@ interface HashHooks {
   togglePlay(): void;
 }
 
+interface HeapItemHook {
+  id: string;
+  key: number;
+  tag?: string;
+}
+
+interface HeapHooks {
+  player: ListPlayer;
+  ui: { selected: string | null };
+  world: {
+    view: 'tree' | 'array';
+    H: {
+      order: 'min' | 'max';
+      a: HeapItemHook[];
+      out: HeapItemHook[];
+      ledger: { kind: string; swaps: number; bound: number }[];
+      keys(): number[];
+      isHeap(): boolean;
+    };
+  };
+  diagram(): { n: number; view: string; items: { id: string; key: number; place: { at: string } }[] };
+  itemScreen(key: string): Screen | null;
+  /** Run one of the page's operations by the id of its button. */
+  press(id: string): void;
+  /** Push a given key, or heapify given keys. */
+  run(name: 'push' | 'heapify', arg: number | number[]): void;
+  seek(i: number): void;
+  settle(): void;
+  advance(seconds: number): void;
+  togglePlay(): void;
+}
+
 interface Window {
   __graph: GraphHooks;
   __avl: AvlHooks;
   __lists: ListHooks;
   __hashing: HashHooks;
+  __heap: HeapHooks;
 }

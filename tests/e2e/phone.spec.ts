@@ -8,6 +8,7 @@ for (const [path, hook] of [
   ['/graphs/', '__graph'],
   ['/lists/', '__lists'],
   ['/hashing/', '__hashing'],
+  ['/heap/', '__heap'],
 ] as const) {
   test(`${path}: the chapter menu replaces the pill row`, async ({ page }) => {
     await page.goto(path);
@@ -17,8 +18,8 @@ for (const [path, hook] of [
     await expect(menuButton).toHaveAttribute('aria-expanded', 'false');
     await menuButton.tap();
     await expect(menuButton).toHaveAttribute('aria-expanded', 'true');
-    await expect(page.locator('#navMenu a:not(.soon)')).toHaveCount(5);
-    await expect(page.locator('#navMenu a.soon')).toHaveCount(3);
+    await expect(page.locator('#navMenu a:not(.soon)')).toHaveCount(6);
+    await expect(page.locator('#navMenu a.soon')).toHaveCount(2);
   });
 
   test(`${path}: the speed button cycles speeds`, async ({ page }) => {
@@ -67,6 +68,17 @@ test('a key can be inserted into the hash clock from the bottom sheet', async ({
   await page.locator('#bInsert').tap();
   await expect(page.locator('#opname')).toHaveText('Insert 5');
   expect(await page.evaluate(() => window.__hashing.world.chain.has(5))).toBe(true);
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
+  expect(overflow).toBeLessThanOrEqual(0);
+});
+
+test('a key can be pushed onto the heap from the bottom sheet', async ({ page }) => {
+  await page.goto('/heap/');
+  await waitForChapter(page, '__heap');
+  await page.locator('#key').fill('5');
+  await page.locator('#bPush').tap();
+  await expect(page.locator('#opname')).toHaveText('Push 5');
+  expect(await page.evaluate(() => window.__heap.world.H.keys().includes(5))).toBe(true);
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
   expect(overflow).toBeLessThanOrEqual(0);
 });

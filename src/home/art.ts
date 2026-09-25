@@ -1,7 +1,7 @@
 // The landing page's drawings: a small AVL mobile that sways, a net that lifts
 // off its plinth in order of distance, a chain whose pointers turn round, a clock
-// whose hand winds a key round to its bucket, and sketches of the chapters to
-// come. Plain SVG, drawn in code.
+// whose hand winds a key round to its bucket, a key climbing a heap's pyramid,
+// and sketches of the chapters to come. Plain SVG, drawn in code.
 
 import { glyphSVG } from '../core/glyphs';
 import { REDUCED } from '../core/prefs';
@@ -334,7 +334,7 @@ const CLOCK: Readonly<Record<number, readonly string[]>> = { 1: ['25', '33'], 3:
 export function drawClock(svg: SVGSVGElement, { W = 640, H = 200, still = false, phase = 1 } = {}): void {
   const cx = W / 2,
     cy = H * 0.66,
-    RX = Math.min(W * 0.34, H * 0.95),
+    RX = Math.min(W * (W < 400 ? 0.37 : 0.34), H * 0.95),
     RY = RX * 0.27,
     R = Math.min(15, RX * 0.085),
     step = R * 2.05;
@@ -415,6 +415,134 @@ export function drawClock(svg: SVGSVGElement, { W = 640, H = 200, still = false,
   requestAnimationFrame(frame);
 }
 
+/* ---------------- No. 5: a key climbs the pyramid, and the array swaps with it ---------------- */
+
+/** The opening heap of Heap Pyramid, slot by slot. */
+const PYRAMID = [4, 17, 9, 23, 18, 12, 31, 40, 26, 21];
+
+/**
+ * A heap as a pyramid standing over its array. `phase` runs 0 → 1: 5 drops into the
+ * next free slot (10), its wire to 18 turns red, and it climbs two rows, swapping
+ * first with 18 and then with 17, while the same two cells swap in the array below.
+ */
+export function drawPyramid(svg: SVGSVGElement, { W = 640, H = 200, still = false, phase = 1 } = {}): void {
+  const cx = W / 2,
+    top = 22,
+    pitch = (H - 82) / 3,
+    leafW = Math.min(310, W * 0.62, W - 60);
+  const cp = Math.min(27, (W - 24) / 15),
+    ay = H - 30;
+  const R = Math.min(11, pitch * 0.3, leafW / 16 - 1.5),
+    r = Math.min(R * 0.72, cp * 0.38);
+  const node = (i: number) => {
+    const row = Math.floor(Math.log2(i + 1)),
+      j = i - (2 ** row - 1);
+    return { x: cx - leafW / 2 + ((j + 0.5) * leafW) / 2 ** row, y: top + row * pitch };
+  };
+  const cell = (i: number) => ({ x: cx + (i - 7) * cp, y: ay });
+  const e = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+  const seg = (t: number, a: number, b: number) => Math.max(0, Math.min(1, (t - a) / (b - a)));
+  // the two swaps: 5 climbs from slot 10 to 4, then from 4 to 1
+  const MOVES = [
+    { up: 10, to: 4, t0: 0.26, t1: 0.46 },
+    { up: 4, to: 1, t0: 0.56, t1: 0.76 },
+  ];
+  function draw(ph: number): void {
+    const drop = seg(ph, 0.02, 0.14);
+    const slots = [...PYRAMID.map(String), '5'];
+    const moving = new Map<string, { a: number; b: number; u: number; up: boolean }>();
+    for (const m of MOVES) {
+      const u = e(seg(ph, m.t0, m.t1));
+      if (u <= 0) continue;
+      const a = slots[m.up],
+        b = slots[m.to];
+      if (u < 1) {
+        moving.set(a, { a: m.up, b: m.to, u, up: true });
+        moving.set(b, { a: m.to, b: m.up, u, up: false });
+      }
+      slots[m.up] = b;
+      slots[m.to] = a;
+    }
+    const at = (k: string, i: number, f: (j: number) => { x: number; y: number }, hopUp: number, hopDown: number) => {
+      const m = moving.get(k);
+      if (!m) return f(i);
+      const A = f(m.a),
+        B = f(m.b),
+        w = Math.sin(Math.PI * m.u);
+      return {
+        x: A.x + (B.x - A.x) * m.u + (m.up ? -6 : 6) * w,
+        y: A.y + (B.y - A.y) * m.u - (m.up ? hopUp : hopDown) * w,
+      };
+    };
+    // which wire is broken, or being checked
+    const bad = ph >= 0.14 && ph < 0.46 ? 10 : ph >= 0.46 && ph < 0.76 ? 4 : -1;
+    const fix = ph >= 0.26 && ph < 0.46 ? seg(ph, 0.26, 0.46) : ph >= 0.56 && ph < 0.76 ? seg(ph, 0.56, 0.76) : 0;
+    const arc =
+      ph >= 0.14 && ph < 0.46 ? [10, 4] : ph >= 0.46 && ph < 0.76 ? [4, 1] : ph >= 0.76 && ph < 0.92 ? [1, 0] : null;
+    let g = `<rect x="${cx - 7.5 * cp - 10}" y="${ay - 13}" width="${15 * cp + 20}" height="26" rx="6" fill="#EFE9DD" stroke="rgba(27,26,23,.12)"/>`;
+    // the array: cells, their index, and a copy of every key
+    for (let i = 0; i < 15; i++) {
+      const c = cell(i),
+        used = i < 10 || (i === 10 && drop > 0);
+      g += `<rect x="${c.x - cp / 2 + 2}" y="${ay - 10}" width="${cp - 4}" height="20" rx="3.5" fill="${used ? PAPER : '#E6DFD2'}" stroke="rgba(27,26,23,${used ? 0.18 : 0.08})"/>`;
+      g += glyphSVG(String(i), c.x, ay + 19, 6, used ? GRAPHITE : FAINT, 14);
+    }
+    // the tree's wires
+    for (let i = 1; i <= 10; i++) {
+      if (i === 10 && drop <= 0) continue;
+      const p = node((i - 1) >> 1),
+        q = node(i);
+      const col = i === bad ? RED : i === 1 && ph >= 0.76 && ph < 0.92 ? COBALT : INK;
+      const op = i === bad ? 1 - fix * 0.7 : 1;
+      g += `<line x1="${p.x}" y1="${p.y}" x2="${q.x}" y2="${q.y}" stroke="${col}" stroke-width="${i === bad ? 2.2 : 1.3}" opacity="${op.toFixed(2)}"/>`;
+    }
+    if (drop <= 0) {
+      const q = node(10),
+        p = node(4);
+      g += `<line x1="${p.x}" y1="${p.y}" x2="${q.x}" y2="${q.y}" stroke="${FAINT}" stroke-width="1.2" stroke-dasharray="3 3"/><circle cx="${q.x}" cy="${q.y}" r="${R}" fill="none" stroke="${FAINT}" stroke-width="1.2" stroke-dasharray="3 2.5"/>`;
+    }
+    // the arc of index arithmetic over the array
+    if (arc) {
+      const A = cell(arc[0]),
+        B = cell(arc[1]),
+        h = 10 + Math.abs(arc[0] - arc[1]) * 2.4;
+      g += `<path d="M${A.x} ${ay - r - 2} Q${(A.x + B.x) / 2} ${ay - r - 2 - 2 * h} ${B.x} ${ay - r - 2}" fill="none" stroke="${COBALT}" stroke-width="1.4"/><circle cx="${B.x}" cy="${ay - r - 2}" r="2" fill="${COBALT}"/>`;
+    }
+    // keys: in the tree, then their copies in the array
+    slots.forEach((k, i) => {
+      if (i === 10 && drop <= 0 && k === '5') return;
+      const fresh = k === '5',
+        fill = fresh ? (ph < 0.9 ? YELLOW : INK) : INK;
+      const glyph = fill === YELLOW ? INK : LIGHT;
+      const dy = fresh && drop < 1 ? -(1 - drop) * 30 : 0;
+      const t = at(k, i, node, 4, 0),
+        c = at(k, i, cell, 12, 3);
+      g += disc(t.x, t.y + dy, R, fill, k, glyph);
+      g += `<g opacity="${fresh ? drop.toFixed(2) : 1}">${disc(c.x, c.y + dy * 0.5, r, fill, k, glyph)}</g>`;
+    });
+    svg.innerHTML = g;
+  }
+  if (still || REDUCED) {
+    draw(phase);
+    return;
+  }
+  const cycle = 8;
+  let visible = true;
+  new IntersectionObserver(es => {
+    visible = es[0].isIntersecting;
+  }).observe(svg);
+  const frame = (now: number) => {
+    if (visible) {
+      const t = (now / 1000) % cycle;
+      // rest, drop and climb, hold, then fade back to the start
+      draw(t < 0.8 ? 0 : t < 5.8 ? (t - 0.8) / 5 : 1);
+      svg.style.opacity = t > 7 ? String(Math.max(0.15, 1 - (t - 7) * 1.2)) : t < 0.6 ? String(0.15 + t * 1.4) : '1';
+    }
+    requestAnimationFrame(frame);
+  };
+  requestAnimationFrame(frame);
+}
+
 /* ---------------- sketches of the chapters to come ---------------- */
 
 const SKETCH = `fill="none" stroke="${FAINT}" stroke-width="1.5" stroke-dasharray="4 3" stroke-linecap="round"`;
@@ -427,32 +555,7 @@ export const THUMBNAILS: Readonly<Record<string, (svg: SVGSVGElement) => void>> 
   graphs: s => drawNet(s, { W: 480, H: 220, still: true, small: true }),
   lists: s => drawChain(s, { W: 480, H: 220, still: true, phase: 0.42 }),
   hashing: s => drawClock(s, { W: 480, H: 220, still: true }),
-  heap: s => {
-    const pos = [
-        [160, 36],
-        [100, 86],
-        [220, 86],
-        [70, 140],
-        [130, 140],
-        [190, 140],
-        [250, 140],
-      ],
-      v = ['2', '5', '3', '9', '6', '8', '7'];
-    let g = '';
-    for (const [a, b] of [
-      [0, 1],
-      [0, 2],
-      [1, 3],
-      [1, 4],
-      [2, 5],
-      [2, 6],
-    ])
-      g += `<line x1="${pos[a][0]}" y1="${pos[a][1]}" x2="${pos[b][0]}" y2="${pos[b][1]}" ${SKETCH}/>`;
-    pos.forEach(([x, y], i) => {
-      g += sketchDisc(x, y, 15) + glyphSVG(v[i], x, y, 13, GRAPHITE, 14);
-    });
-    s.innerHTML = g;
-  },
+  heap: s => drawPyramid(s, { W: 480, H: 220, still: true, phase: 0.2 }),
   sorting: s => {
     const hs = [60, 110, 40, 130, 80, 150, 25, 95, 120];
     s.innerHTML =

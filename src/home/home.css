@@ -188,7 +188,7 @@ section {
   grid-column: span 6;
 }
 .cards li.soon {
-  grid-column: span 4;
+  grid-column: span 3;
 }
 .soon .cbody {
   padding: 14px 16px 16px;
