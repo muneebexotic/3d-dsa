@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Hash Clock: hash tables, collisions and resizing in 3D · 3D Data Structures</title>
+    <meta
+      name="description"
+      content="See how a hash table works. Watch keys wind round a clock of buckets, collide, chain or probe, and rehash into a table twice the size, and see why O(1) is an average, not a promise."
+    />
+    <link rel="canonical" href="%VITE_SITE_URL%/hashing/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="3D Data Structures" />
+    <meta property="og:title" content="Hash Clock: hash tables, collisions and resizing in 3D" />
+    <meta
+      property="og:description"
+      content="Every key winds round a clock of buckets. Watch collisions pile up, the table double and rehash, and a run of unlucky keys turn O(1) into O(n)."
+    />
+    <meta property="og:url" content="%VITE_SITE_URL%/hashing/" />
+    <meta name="theme-color" content="#ECE6DA" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/src/chapters/hashing/hashing.css" />
+  </head>
+  <body>
+    <canvas
+      id="stage"
+      tabindex="-1"
+      aria-label="A hash table drawn as a clock on a round plinth: buckets round the rim, a hand at the hub that winds each key round to its bucket, and a load gauge beside it. Use the controls to insert, search and delete keys."
+    ></canvas>
+    <div id="callout" aria-hidden="true"></div>
+
+    <aside id="dock" aria-label="Controls">
+      <header id="masthead">
+        <div class="eyebrow">3D Data Structures · No. 4</div>
+        <h1>Hash Clock</h1>
+        <div id="mstats" class="eyebrow"></div>
+        <p class="sub">
+          A hash table as a clock of buckets. Every key winds round to its hour, straight there, every time.
+        </p>
+      </header>
+
+      <section id="setup" class="card" aria-label="Table and operations">
+        <div class="seg" id="stratSeg" role="group" aria-label="How collisions are resolved">
+          <button type="button" data-s="chain" aria-pressed="true">Chaining</button>
+          <button type="button" data-s="probe" aria-pressed="false">Linear probing</button>
+        </div>
+        <form id="opform" autocomplete="off" novalidate>
+          <div class="field">
+            <label for="key">Key (0–99)</label>
+            <input
+              id="key"
+              name="key"
+              type="text"
+              inputmode="numeric"
+              enterkeyhint="done"
+              placeholder="blank picks one"
+              maxlength="4"
+              aria-describedby="err"
+            />
+          </div>
+          <button class="btn primary" id="bInsert" type="submit">Insert</button>
+        </form>
+        <div id="err" role="alert"></div>
+        <div id="opbtns" role="group" aria-label="Operations">
+          <button class="btn" id="bSearch" type="button">Search</button>
+          <button class="btn" id="bDelete" type="button">Delete</button>
+          <button class="btn" id="bRandom" type="button">Add 4 random</button>
+          <button class="btn accent" id="bUnlucky" type="button">Unlucky keys</button>
+        </div>
+        <div class="row2">
+          <div class="seg mini" id="hashSeg" role="group" aria-label="Hash function">
+            <button type="button" data-h="plain" aria-pressed="true">k mod m</button>
+            <button type="button" data-h="scrambled" aria-pressed="false">Scrambled</button>
+          </div>
+          <label class="toggle" id="growToggle"><input type="checkbox" id="optGrow" checked /> Grow at ¾</label>
+          <button class="btn quiet" id="bReset" type="button">Reset</button>
+        </div>
+      </section>
+
+      <section id="placard" class="card" aria-live="polite">
+        <div class="prow">
+          <span class="eyebrow" id="opname">Hash Clock</span><span class="eyebrow" id="stepno"></span>
+        </div>
+        <div id="head"></div>
+        <div id="body"></div>
+        <div id="chips"></div>
+      </section>
+
+      <div id="transport"></div>
+    </aside>
+
+    <div id="side">
+      <aside id="inspector" class="card" hidden aria-label="Selected key">
+        <div class="prow">
+          <span class="eyebrow">Selected</span
+          ><button class="x" id="insClose" type="button" aria-label="Close">×</button>
+        </div>
+        <div class="ins-top">
+          <span id="insDisc"></span>
+          <div id="insState"></div>
+        </div>
+        <div class="ins-grid" id="insGrid"></div>
+        <div id="insNote"></div>
+      </aside>
+      <section id="code" class="card" aria-label="The code">
+        <div class="prow">
+          <span class="eyebrow" id="codeTitle">The code</span><span class="eyebrow faint">pseudocode</span>
+        </div>
+        <ol id="codeLines"></ol>
+      </section>
+      <section id="work" class="card" aria-label="What each operation cost">
+        <div class="prow"><span class="eyebrow">Work per operation</span><span class="eyebrow faint">looks</span></div>
+        <div id="workChart"></div>
+      </section>
+      <section id="cost" class="card" aria-label="Cost of each operation">
+        <div class="eyebrow">Average and worst case</div>
+        <div id="costTable"></div>
+      </section>
+    </div>
+
+    <div id="tools">
+      <button class="icon" id="bSound" type="button" aria-pressed="true" aria-label="Sound">
+        <svg
+          class="snd-on"
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M4 9 L8 9 L13 5 L13 19 L8 15 L4 15 Z" />
+          <path d="M16.5 9 A4 4 0 0 1 16.5 15" />
+          <path d="M19 6.5 A7.5 7.5 0 0 1 19 17.5" /></svg
+        ><svg
+          class="snd-off"
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M4 9 L8 9 L13 5 L13 19 L8 15 L4 15 Z" />
+          <path d="M17 9.5 L22 14.5 M22 9.5 L17 14.5" />
+        </svg>
+      </button>
+      <button class="icon" id="bFrame" type="button" aria-label="Reset view">
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M4 9 L4 4 L9 4" />
+          <path d="M15 4 L20 4 L20 9" />
+          <path d="M20 15 L20 20 L15 20" />
+          <path d="M9 20 L4 20 L4 15" />
+          <circle cx="12" cy="12" r="2.2" />
+        </svg>
+      </button>
+      <button class="icon" id="bHelp" type="button" aria-label="How to read the clock">
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <circle cx="12" cy="12" r="9" />
+          <path d="M9.6 9.3 A2.5 2.5 0 1 1 12 12.4 L12 13.8" />
+          <path d="M12 17 L12 17.1" />
+        </svg>
+      </button>
+    </div>
+
+    <aside id="legend" class="card" aria-label="Legend"></aside>
+
+    <div id="help" hidden role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+      <div class="card">
+        <div class="prow">
+          <h2 id="helpTitle">How to read the clock</h2>
+          <button class="x" id="helpClose" type="button" aria-label="Close">×</button>
+        </div>
+        <p>
+          <b>Each hour on the clock is a bucket</b>, and the whole ring is one array. To place a key, the hand at the
+          hub winds that many hours round, starting from 0: on an 8-hour clock, 57 is seven full turns and one more, so
+          57 goes in bucket 1. That is <b>57 mod 8</b>. The computer does it with one division, so it costs the same for
+          every key, and every bucket is one jump from the hub.
+        </p>
+        <p>
+          <b>A collision</b> is two keys winding round to the same hour. <b>Chaining</b> keeps a small linked list in
+          every bucket, drawn as a tower with a wire pointer to each next key. <b>Linear probing</b> keeps one key per
+          bucket: a key that finds its bucket taken tries the next one, and a delete leaves a tombstone so later
+          searches know to keep walking.
+        </p>
+        <div class="lgwrap" id="helpLegend"></div>
+        <p>
+          <b>The gauge is the load factor</b>, α = keys ÷ buckets. Past ¾ the table doubles and every key is rehashed.
+          The chart on the right shows what each operation really cost: nearly always one or two looks, occasionally a
+          spike. O(1) is that average, and it only holds while the hash spreads keys evenly. Try Unlucky keys.
+        </p>
+        <div class="keys">
+          Drag to orbit · scroll or pinch to zoom · right-drag or two fingers to pan · click a key to inspect it.<br /><kbd
+            >Space</kbd
+          >
+          play or pause · <kbd>←</kbd> <kbd>→</kbd> step · <kbd>Enter</kbd> insert the key · <kbd>?</kbd> this card
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="/src/chapters/hashing/main.ts"></script>
+  </body>
+</html>

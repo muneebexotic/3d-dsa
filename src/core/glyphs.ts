@@ -43,6 +43,9 @@ export const GLYPH: Readonly<Record<string, string>> = {
   Z: 'M8 6 L54 6 L8 94 L54 94',
   // lowercase x, for addresses such as 0x48
   x: 'M14 46 L48 94 M48 46 L14 94',
+  // a decimal point and a slash, for load factors such as 0.75 and 6/8
+  '.': 'M31 90 L31 92',
+  '/': 'M50 6 L12 94',
   ' ': '',
 };
 /** Ink extents [min, max] in the 62-wide box, for glyphs that are not full width. */
@@ -58,6 +61,8 @@ export const GM: Readonly<Record<string, readonly [number, number]>> = {
   O: [0, 68],
   Q: [0, 68],
   x: [8, 54],
+  '.': [22, 40],
+  '/': [4, 58],
 };
 const ALIAS: Readonly<Record<string, string>> = { '−': '-' };
 const TRACK = 12;

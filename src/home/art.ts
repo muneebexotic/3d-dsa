@@ -1,6 +1,7 @@
 // The landing page's drawings: a small AVL mobile that sways, a net that lifts
-// off its plinth in order of distance, a chain whose pointers turn round, and
-// sketches of the chapters to come. Plain SVG, drawn in code.
+// off its plinth in order of distance, a chain whose pointers turn round, a clock
+// whose hand winds a key round to its bucket, and sketches of the chapters to
+// come. Plain SVG, drawn in code.
 
 import { glyphSVG } from '../core/glyphs';
 import { REDUCED } from '../core/prefs';
@@ -320,6 +321,100 @@ export function drawChain(svg: SVGSVGElement, { W = 640, H = 220, still = false,
   requestAnimationFrame(frame);
 }
 
+/* ---------------- No. 4: a key winds round the clock to its bucket ---------------- */
+
+/** The opening table of Hash Clock: bucket → keys, bottom of the chain first. */
+const CLOCK: Readonly<Record<number, readonly string[]>> = { 1: ['25', '33'], 3: ['59'], 4: ['12'], 6: ['46', '70'] };
+
+/**
+ * A hash table as a clock of eight buckets, seen from above and in front. `phase`
+ * runs 0 → 1: 41 drops onto the hub, the hand winds 41 hours (five turns and one
+ * more), and 41 flies out to the top of bucket 1's chain.
+ */
+export function drawClock(svg: SVGSVGElement, { W = 640, H = 200, still = false, phase = 1 } = {}): void {
+  const cx = W / 2,
+    cy = H * 0.66,
+    RX = Math.min(W * 0.34, H * 0.95),
+    RY = RX * 0.27,
+    R = Math.min(15, RX * 0.085),
+    step = R * 2.05;
+  const at = (i: number, k = 1) => {
+    const a = (i / 8) * Math.PI * 2;
+    return { x: cx + RX * k * Math.sin(a), y: cy - RY * k * Math.cos(a) };
+  };
+  const wire = (x: number, y0: number, y1: number, col: string) =>
+    `<path d="M${x + R * 0.95} ${y0} Q${x + R * 1.9} ${(y0 + y1) / 2} ${x + R * 0.95} ${y1 + 3}" fill="none" stroke="${col}" stroke-width="1.4"/><circle cx="${x + R * 0.95}" cy="${y0}" r="2" fill="${INK}"/>`;
+  function draw(ph: number): void {
+    const drop = Math.min(1, ph / 0.12),
+      wind = Math.max(0, Math.min(1, (ph - 0.14) / 0.56)),
+      fly = Math.max(0, Math.min(1, (ph - 0.74) / 0.22));
+    const e = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+    let g = `<ellipse cx="${cx}" cy="${cy + 6}" rx="${RX + 34}" ry="${RY + 8}" fill="#E9E2D5"/><ellipse cx="${cx}" cy="${cy}" rx="${RX + 34}" ry="${RY + 8}" fill="#F7F3EB" stroke="rgba(27,26,23,.12)"/>`;
+    // spokes and hours
+    for (let i = 0; i < 8; i++) {
+      const p = at(i, 0.62),
+        q = at(i, 0.26);
+      g += `<line x1="${q.x}" y1="${q.y}" x2="${p.x}" y2="${p.y}" stroke="#D3CABA" stroke-width="1"/>`;
+      const n = at(i, 0.76);
+      g += glyphSVG(String(i), n.x, n.y, 8, GRAPHITE, 15);
+    }
+    // the hub and its hand: 41 hours is five full turns and one more
+    const turns = e(wind) * 41,
+      ha = (turns / 8) * Math.PI * 2,
+      hub = { x: cx, y: cy - 4 };
+    g += `<ellipse cx="${cx}" cy="${cy + 2}" rx="${RX * 0.23}" ry="${RY * 0.23 + 3}" fill="#E5DED1"/><ellipse cx="${hub.x}" cy="${hub.y}" rx="${RX * 0.23}" ry="${RY * 0.23}" fill="#EFE9DD" stroke="${INK}" stroke-width="1"/>`;
+    const hx = hub.x + RX * 0.42 * Math.sin(ha),
+      hy = hub.y - RY * 0.42 * Math.cos(ha);
+    g += `<line x1="${hub.x}" y1="${hub.y}" x2="${hx.toFixed(1)}" y2="${hy.toFixed(1)}" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/><circle cx="${hub.x}" cy="${hub.y}" r="3.2" fill="${INK}"/>`;
+    // buckets and their chains, back to front
+    const order = [0, 7, 1, 6, 2, 5, 3, 4];
+    for (const i of order) {
+      const p = at(i);
+      const keys = [...(CLOCK[i] ?? [])];
+      const landed = i === 1 && fly >= 1;
+      if (landed) keys.push('41');
+      g += `<rect x="${p.x - 17}" y="${p.y - 6}" width="34" height="12" rx="3" fill="${keys.length ? PAPER : '#E3DCCF'}" stroke="rgba(27,26,23,.18)"/>`;
+      keys.forEach((k, j) => {
+        const y = p.y - 14 - j * step;
+        g += wire(p.x, j === 0 ? p.y - 2 : y + step - R * 0.3, y + R * 0.3, INK);
+        const fresh = landed && k === '41';
+        g += disc(p.x, y, R, fresh ? YELLOW : INK, k, fresh ? INK : LIGHT);
+      });
+    }
+    // the key on its way
+    if (ph > 0 && fly < 1) {
+      const top = at(1),
+        tx = top.x,
+        ty = top.y - 14 - 2 * step;
+      const u = e(fly),
+        y0 = hub.y - 26 - (1 - drop) * 30;
+      const x = hub.x + (tx - hub.x) * u,
+        y = y0 + (ty - y0) * u - Math.sin(Math.PI * u) * 34;
+      g += `<g opacity="${Math.min(1, drop * 1.5).toFixed(2)}">${fly === 0 ? `<line x1="${hub.x}" y1="${hub.y}" x2="${hub.x}" y2="${y0 + R}" stroke="${INK}" stroke-width="1.2"/>` : ''}${disc(x, y, R, YELLOW, '41', INK)}</g>`;
+    }
+    svg.innerHTML = g;
+  }
+  if (still || REDUCED) {
+    draw(phase);
+    return;
+  }
+  const cycle = 9;
+  let visible = true;
+  new IntersectionObserver(es => {
+    visible = es[0].isIntersecting;
+  }).observe(svg);
+  const frame = (now: number) => {
+    if (visible) {
+      const t = (now / 1000) % cycle;
+      // rest, drop, wind, fly, hold, then fade back to the start
+      draw(t < 1 ? 0 : t < 6 ? (t - 1) / 5 : 1);
+      svg.style.opacity = t > 8 ? String(Math.max(0.15, 1 - (t - 8) * 1.2)) : t < 0.6 ? String(0.15 + t * 1.4) : '1';
+    }
+    requestAnimationFrame(frame);
+  };
+  requestAnimationFrame(frame);
+}
+
 /* ---------------- sketches of the chapters to come ---------------- */
 
 const SKETCH = `fill="none" stroke="${FAINT}" stroke-width="1.5" stroke-dasharray="4 3" stroke-linecap="round"`;
@@ -331,26 +426,7 @@ export const THUMBNAILS: Readonly<Record<string, (svg: SVGSVGElement) => void>> 
   avl: s => drawMobile(s, { s: 0.74, cx: 240, top: 14 }),
   graphs: s => drawNet(s, { W: 480, H: 220, still: true, small: true }),
   lists: s => drawChain(s, { W: 480, H: 220, still: true, phase: 0.42 }),
-  hashing: s => {
-    let g = '';
-    for (let i = 0; i < 5; i++) {
-      const y = 30 + i * 30;
-      g += `<rect x="70" y="${y}" width="30" height="24" rx="5" ${SKETCH}/>${glyphSVG(String(i), 85, y + 12, 11, FAINT, 14)}`;
-    }
-    const chains: [number, string[]][] = [
-      [0, ['A']],
-      [2, ['K', 'Q', 'Z']],
-      [3, ['M']],
-      [4, ['R', 'T']],
-    ];
-    for (const [b, ks] of chains)
-      ks.forEach((k, j) => {
-        const x = 130 + j * 44,
-          y = 42 + b * 30;
-        g += `<path d="M${x - 26} ${y} H${x - 13}" ${SKETCH}/><circle cx="${x}" cy="${y}" r="12" ${SKETCH}/>${glyphSVG(k, x, y, 11, GRAPHITE, 14)}`;
-      });
-    s.innerHTML = g;
-  },
+  hashing: s => drawClock(s, { W: 480, H: 220, still: true }),
   heap: s => {
     const pos = [
         [160, 36],

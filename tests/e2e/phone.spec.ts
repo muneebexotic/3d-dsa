@@ -7,6 +7,7 @@ for (const [path, hook] of [
   ['/avl/', '__avl'],
   ['/graphs/', '__graph'],
   ['/lists/', '__lists'],
+  ['/hashing/', '__hashing'],
 ] as const) {
   test(`${path}: the chapter menu replaces the pill row`, async ({ page }) => {
     await page.goto(path);
@@ -16,8 +17,8 @@ for (const [path, hook] of [
     await expect(menuButton).toHaveAttribute('aria-expanded', 'false');
     await menuButton.tap();
     await expect(menuButton).toHaveAttribute('aria-expanded', 'true');
-    await expect(page.locator('#navMenu a:not(.soon)')).toHaveCount(4);
-    await expect(page.locator('#navMenu a.soon')).toHaveCount(4);
+    await expect(page.locator('#navMenu a:not(.soon)')).toHaveCount(5);
+    await expect(page.locator('#navMenu a.soon')).toHaveCount(3);
   });
 
   test(`${path}: the speed button cycles speeds`, async ({ page }) => {
@@ -55,6 +56,17 @@ test('inserting a value works from the bottom sheet', async ({ page }) => {
 
 test('the landing page fits the phone without sideways scrolling', async ({ page }) => {
   await page.goto('/');
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
+  expect(overflow).toBeLessThanOrEqual(0);
+});
+
+test('a key can be inserted into the hash clock from the bottom sheet', async ({ page }) => {
+  await page.goto('/hashing/');
+  await waitForChapter(page, '__hashing');
+  await page.locator('#key').fill('5');
+  await page.locator('#bInsert').tap();
+  await expect(page.locator('#opname')).toHaveText('Insert 5');
+  expect(await page.evaluate(() => window.__hashing.world.chain.has(5))).toBe(true);
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
   expect(overflow).toBeLessThanOrEqual(0);
 });

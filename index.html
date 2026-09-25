@@ -6,7 +6,7 @@
     <title>3D Data Structures</title>
     <meta
       name="description"
-      content="An exhibition of algorithms in motion. Interactive 3D chapters on AVL trees, graph search, and linked lists, stacks and queues, every step narrated and rewindable."
+      content="An exhibition of algorithms in motion. Interactive 3D chapters on AVL trees, graph search, linked lists, stacks and queues, and hash tables, every step narrated and rewindable."
     />
     <link rel="canonical" href="%VITE_SITE_URL%/" />
     <meta property="og:type" content="website" />
@@ -14,7 +14,7 @@
     <meta property="og:title" content="3D Data Structures: algorithms in motion" />
     <meta
       property="og:description"
-      content="Interactive 3D chapters on AVL trees, graph search, and linked lists, stacks and queues, with every step recorded, narrated and rewindable."
+      content="Interactive 3D chapters on AVL trees, graph search, linked lists, stacks and queues, and hash tables, with every step recorded, narrated and rewindable."
     />
     <meta property="og:url" content="%VITE_SITE_URL%/" />
     <meta name="theme-color" content="#ECE6DA" />
@@ -29,6 +29,7 @@
           <a href="/avl/">No. 1 · AVL</a>
           <a href="/graphs/">No. 2 · Graphs</a>
           <a href="/lists/">No. 3 · Lists</a>
+          <a href="/hashing/">No. 4 · Hashing</a>
         </nav>
         <nav class="links" aria-label="Page">
           <a href="#catalogue">Catalogue</a>
@@ -46,14 +47,15 @@
           <p class="lede">
             Each chapter turns one structure into a sculpture you can orbit, step through and rewind. Watch a tree
             rotate itself level. Lift a graph by one knot and see why Dijkstra is right. Turn every pointer in a linked
-            list round, one wire at a time.
+            list round, one wire at a time. Wind a key round a clock of buckets and watch the whole table double.
           </p>
           <div class="cta">
             <a class="btn primary" href="/avl/">Start with No. 1 · AVL Mobile</a>
             <a class="btn" href="/graphs/">No. 2 · Graph Net</a>
             <a class="btn" href="/lists/">No. 3 · Pointer Chain</a>
+            <a class="btn" href="/hashing/">No. 4 · Hash Clock</a>
           </div>
-          <p class="note">Three chapters on the wall · four in the studio · nothing to install</p>
+          <p class="note">Four chapters on the wall · three in the studio · nothing to install</p>
         </div>
         <div class="vitrine" aria-hidden="true">
           <figure class="piece">
@@ -68,6 +70,10 @@
             <svg id="artChain" viewBox="0 0 640 200"></svg>
             <figcaption>No. 3, every pointer turning round</figcaption>
           </figure>
+          <figure class="piece wide">
+            <svg id="artClock" viewBox="0 0 640 200"></svg>
+            <figcaption>No. 4, a key winding round to its bucket</figcaption>
+          </figure>
         </div>
       </section>
 
@@ -76,11 +82,12 @@
           <div class="sechead">
             <div>
               <div class="eyebrow">The catalogue</div>
-              <h2 id="catTitle">Seven works. Three on the wall, four in the studio.</h2>
+              <h2 id="catTitle">Seven works. Four on the wall, three in the studio.</h2>
             </div>
             <p>
               Numbered in learning order. Pointer Chain follows the graph chapter because BFS and DFS lean on its queue
-              and stack, and the heap comes next because Dijkstra’s priority queue is one.
+              and stack. Hash Clock builds its buckets from Pointer Chain’s arrays and lists, and the heap comes next
+              because Dijkstra’s priority queue is one.
             </p>
           </div>
           <ol class="cards" id="cards"></ol>
@@ -140,7 +147,7 @@
           </div>
           <div class="path" aria-label="Suggested order">
             <b>Suggested path</b> <span>AVL Mobile</span><i>→</i><span>Graph Net</span><i>→</i><span>Pointer Chain</span
-            ><i>→</i><span>Hash table</span><i>→</i><span>Heap</span><i>→</i><span>Sorting</span><i>→</i
+            ><i>→</i><span>Hash Clock</span><i>→</i><span>Heap</span><i>→</i><span>Sorting</span><i>→</i
             ><span>Trie</span>
           </div>
         </div>

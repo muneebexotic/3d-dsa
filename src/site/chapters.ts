@@ -54,11 +54,13 @@ export const CHAPTERS: readonly Chapter[] = [
   {
     no: 4,
     slug: 'hashing',
-    title: 'Hash table',
+    title: 'Hash Clock',
     short: 'Hashing',
-    topic: 'Hashing',
-    live: false,
-    blurb: 'Keys dropped into buckets, collisions chained or probed, and a resize you can watch happen.',
+    topic: 'Hash tables',
+    live: true,
+    blurb:
+      'Every key winds round a clock of buckets to its hour. Watch collisions chain or probe, the table double and rehash in a fountain, and unlucky keys turn O(1) into O(n).',
+    tags: ['Chaining · probing', 'Load factor · rehash'],
   },
   {
     no: 5,

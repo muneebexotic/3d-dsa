@@ -26,11 +26,11 @@ src/
 
 Inside a chapter, modules fall into three layers. Imports only point down.
 
-| Layer                                           | Graph Net                                                         | AVL Mobile                          | Pointer Chain                                                                                                                     | May use DOM / Three.js?         | Unit-tested              |
-| ----------------------------------------------- | ----------------------------------------------------------------- | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------- | ------------------------ |
-| **Model:** the algorithm and its recorded steps | `algorithms.ts`, `presets.ts`                                     | `engine.ts`                         | `diagram.ts`, `memory.ts`, `linked.ts`, `listops.ts`, `array.ts`, `stack.ts`, `queue.ts`, `bridge.ts`, `code.ts`, `complexity.ts` | no                              | yes                      |
-| **Motion:** poses and transitions               | `poses.ts`, `motion.ts`, `program.ts`                             | `layout.ts`, `poses.ts`             | `layout.ts`, `palette.ts`, `poses.ts`, `motion.ts`                                                                                | no (Three.js colour maths only) | yes                      |
-| **View:** drawing and UI                        | `scene.ts`, `panels.ts`, `inspector.ts`, `editing.ts`, `sound.ts` | `scene.ts`, `panels.ts`, `sound.ts` | `scene.ts`, `panels.ts`, `sound.ts`, `state.ts`                                                                                   | yes                             | through end-to-end tests |
+| Layer                                           | Graph Net                                                         | AVL Mobile                          | Pointer Chain                                                                                                                     | Hash Clock                                                            | May use DOM / Three.js?         | Unit-tested              |
+| ----------------------------------------------- | ----------------------------------------------------------------- | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- | ------------------------------- | ------------------------ |
+| **Model:** the algorithm and its recorded steps | `algorithms.ts`, `presets.ts`                                     | `engine.ts`                         | `diagram.ts`, `memory.ts`, `linked.ts`, `listops.ts`, `array.ts`, `stack.ts`, `queue.ts`, `bridge.ts`, `code.ts`, `complexity.ts` | `hash.ts`, `table.ts`, `diagram.ts`, `record.ts`, `ops.ts`, `code.ts` | no                              | yes                      |
+| **Motion:** poses and transitions               | `poses.ts`, `motion.ts`, `program.ts`                             | `layout.ts`, `poses.ts`             | `layout.ts`, `palette.ts`, `poses.ts`, `motion.ts`                                                                                | `layout.ts`, `palette.ts`, `poses.ts`, `motion.ts`                    | no (Three.js colour maths only) | yes                      |
+| **View:** drawing and UI                        | `scene.ts`, `panels.ts`, `inspector.ts`, `editing.ts`, `sound.ts` | `scene.ts`, `panels.ts`, `sound.ts` | `scene.ts`, `panels.ts`, `sound.ts`, `state.ts`                                                                                   | `scene.ts`, `panels.ts`, `sound.ts`, `state.ts`                       | yes                             | through end-to-end tests |
 
 `main.ts` in each chapter is the composition root: it creates the scene, the player and the panels, and wires them to the page's markup. It holds no algorithm logic.
 
@@ -65,10 +65,10 @@ Inside a chapter, modules fall into three layers. Imports only point down.
 
 ## Testing
 
-| Kind       | Where                          | Run with           | What it proves                                                                                                                                                                                                                                                                                                                                  |
-| ---------- | ------------------------------ | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Unit       | `tests/unit/` (mirrors `src/`) | `npm test`         | Algorithms agree with reference implementations on thousands of random graphs; AVL invariants hold through random operations; lists, arrays, stacks and queues match plain JavaScript arrays doing the same thing; every step starts where the last one rested; the player's state machine; the catalogue is consistent with the pages on disk. |
-| End-to-end | `tests/e2e/`                   | `npm run test:e2e` | Every page loads with no console errors under the production CSP; every preset plays to the end in every mode; editing works; list operations, the stack and queue orders and the bridge to Graph Net work; the phone layout works.                                                                                                             |
+| Kind       | Where                          | Run with           | What it proves                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| ---------- | ------------------------------ | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Unit       | `tests/unit/` (mirrors `src/`) | `npm test`         | Algorithms agree with reference implementations on thousands of random graphs; AVL invariants hold through random operations; lists, arrays, stacks and queues match plain JavaScript arrays doing the same thing; both hash tables match a JavaScript `Set` and keep their probing and chaining invariants; every step starts where the last one rested; the player's state machine; the catalogue is consistent with the pages on disk. |
+| End-to-end | `tests/e2e/`                   | `npm run test:e2e` | Every page loads with no console errors under the production CSP; every preset plays to the end in every mode; editing works; list operations, the stack and queue orders and the bridge to Graph Net work; the phone layout works.                                                                                                                                                                                                       |
 
 The end-to-end suite builds with `--mode e2e` (which sets `VITE_TEST_HOOKS=true`) and serves it with `vite preview`. Production builds never include the hooks. CI machines have no GPU, so WebGL runs in software at a few frames a second; CI runs the suite in a single worker (about ten minutes) because two software-rendering browsers at once starve each other.
 
@@ -76,20 +76,20 @@ Tests import source through the `@/` alias (`@/core/player`, `@/chapters/avl/eng
 
 ## Adding a chapter
 
-Say the new chapter is No. 4, slug `hashing`. Pointer Chain (`src/chapters/lists/`) is the most recent worked example.
+Say the new chapter is No. 5, slug `heap`. Hash Clock (`src/chapters/hashing/`) is the most recent worked example.
 
 1. **Catalogue.** In `src/site/chapters.ts`, set `live: true` and fill in `short`, `topic`, `blurb` and `tags`. The unit test in `tests/unit/site/chapters.test.ts` fails until steps 2 and 3 are done.
-2. **Page.** Create `hashing/index.html`, markup only. Copy the head from `lists/index.html` and change the title (it must start with the chapter's title), description, canonical and Open Graph URLs (`%VITE_SITE_URL%/hashing/`). Keep the shared ids (`stage`, `dock`, `masthead`, `placard`, `transport`, `tools`, `help`) so the core controls work.
-3. **Code.** Create `src/chapters/hashing/`:
+2. **Page.** Create `heap/index.html`, markup only. Copy the head from `hashing/index.html` and change the title (it must start with the chapter's title), description, canonical and Open Graph URLs (`%VITE_SITE_URL%/heap/`). Keep the shared ids (`stage`, `dock`, `masthead`, `placard`, `transport`, `tools`, `help`) so the core controls work.
+3. **Code.** Create `src/chapters/heap/`:
    - the model: the structure, its operations, and a recorder that returns `Step[]` snapshots (no DOM, no Three.js);
    - the motion: `poses.ts` with a rest pose per step and `buildTransition(prog, i)` / `morph(a, b, dur)` for the player;
    - the view: `scene.ts` that draws any pose, plus panels if needed;
-   - `main.ts` that wires them to the player, `mountNav({ current: 'hashing' })`, the transport and the placard;
-   - `hashing.css`, starting with `@import '../../styles/tokens.css';`;
-   - test hooks via `exposeTestHooks('__hashing', { player, ... })`.
+   - `main.ts` that wires them to the player, `mountNav({ current: 'heap' })`, the transport and the placard;
+   - `heap.css`, starting with `@import '../../styles/tokens.css';`;
+   - test hooks via `exposeTestHooks('__heap', { player, ... })`.
    - Scenes draw with the shared `WireKit` (`core/instances.ts`) and `LabelBatch` (`core/labels.ts`) rather than their own meshes.
-4. **Thumbnail.** Replace the sketch for `hashing` in `src/home/art.ts`, and add the page to the static links in `index.html` and `404.html`.
-5. **Tests.** Add `tests/unit/chapters/hashing/` (model against a reference, motion continuity) and an end-to-end spec in `tests/e2e/`. Add the page to the `CHAPTERS` list in `tests/e2e/pages.spec.ts` and the phone spec, and update the chapter counts there.
+4. **Thumbnail.** Replace the sketch for `heap` in `src/home/art.ts`, and add the page to the static links in `index.html` and `404.html`. With an odd number of live chapters, check the card grid in `src/home/home.css` (live cards sit two to a row).
+5. **Tests.** Add `tests/unit/chapters/heap/` (model against a reference, motion continuity) and an end-to-end spec in `tests/e2e/`. Add the page to the `CHAPTERS` list in `tests/e2e/pages.spec.ts` and the phone spec, and update the chapter counts there.
 
 The build picks up the new page, the navigation and the sitemap from the catalogue; there is no other list to update.
 

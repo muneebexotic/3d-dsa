@@ -68,8 +68,34 @@ interface ListHooks {
   togglePlay(): void;
 }
 
+interface HashTableHook {
+  m: number;
+  n: number;
+  hash: string;
+  slots: (number | null)[];
+  chains: number[][];
+  ledger: { kind: string; work: number }[];
+  keys(): number[];
+  has(k: number): boolean;
+}
+
+interface HashHooks {
+  player: ListPlayer;
+  ui: { strategy: string; grow: boolean; selected: string | null };
+  world: { chain: HashTableHook; probe: HashTableHook };
+  diagram(): { items: { id: string; key: number }[] };
+  itemScreen(key: string): Screen | null;
+  /** Run one of the page's operations by the id of its button. */
+  press(id: string): void;
+  seek(i: number): void;
+  settle(): void;
+  advance(seconds: number): void;
+  togglePlay(): void;
+}
+
 interface Window {
   __graph: GraphHooks;
   __avl: AvlHooks;
   __lists: ListHooks;
+  __hashing: HashHooks;
 }
