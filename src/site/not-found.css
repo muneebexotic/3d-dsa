@@ -1,0 +1,57 @@
+/* Tokens and the shared gallery UI come first so this page's rules win the cascade. */
+@import '../styles/tokens.css';
+
+/* The 404 page: a single centred card on the gallery wall. */
+html,
+body {
+  height: auto;
+}
+body {
+  overflow: auto;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 32px 16px;
+}
+.lost {
+  max-width: 520px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+}
+.lost svg {
+  max-width: 100%;
+  height: auto;
+  margin-bottom: 8px;
+}
+.lost h1 {
+  margin: 0;
+  font: 600 clamp(30px, 5vw, 42px)/1.08 var(--serif);
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+.lost p {
+  margin: 0;
+  font: 17px/1.5 var(--serif);
+  color: var(--graphite);
+}
+.lost nav {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 12px;
+}
+.lost a {
+  color: inherit;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
+.lost .btn {
+  height: 44px;
+  padding: 0 18px;
+}

@@ -1,0 +1,21 @@
+# dependencies and build output
+node_modules/
+dist/
+dist-e2e/
+*.tsbuildinfo
+
+# tests
+coverage/
+playwright-report/
+test-results/
+
+# local settings and secrets
+.env.local
+.env.*.local
+.vercel/
+
+# editors and OS
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json

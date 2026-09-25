@@ -1,0 +1,17 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      # Tooling moves together; three and its types move together.
+      dev-tooling:
+        dependency-type: development
+        exclude-patterns: ['@types/three']
+      three:
+        patterns: ['three', '@types/three']
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly

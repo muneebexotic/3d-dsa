@@ -1,1460 +1,223 @@
 <!doctype html>
 <html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>AVL Mobile</title>
-<meta name="description" content="An interactive 3D AVL tree, hung as a mobile. Insert, delete and search values and watch every rotation happen.">
-<link rel="stylesheet" href="../shared/tokens.css">
-<style>
-/* ---------- AVL: operations, legend ---------- */
-#ops{order:1;padding:14px;display:flex;flex-direction:column;gap:10px}
-#opform{display:flex;gap:8px;align-items:flex-end;margin:0}
-#val{height:44px;border-radius:10px;border:1px solid var(--line-strong);background:#fff;padding:0 12px;font:600 18px var(--sans);font-variant-numeric:tabular-nums;color:var(--ink);width:100%;min-width:0}
-#val[aria-invalid="true"]{border-color:var(--red)}
-#err{font-size:12.5px;line-height:1.35;color:#B02A15;margin:-2px 2px 0}
-#err:empty{display:none}
-#opbtns{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
-#bDemo{grid-column:span 2}
-#legend{position:fixed;z-index:2;right:188px;top:24px;height:44px;padding:0 16px 0 10px;border-radius:22px;display:flex;align-items:center;gap:14px}
-#legend .lg span{display:none}
-#legend .lg b{font-size:12.5px;white-space:nowrap}
-.lg{display:flex;align-items:center;gap:6px}
-.lg svg{flex:none}
-.lg b{display:block;font-size:13px}
-.lg span{display:block;font-size:12px;color:var(--graphite)}
-#help .lgwrap{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 12px}
-@media (max-width:1260px){ #legend{display:none} }
-@media (max-width:760px){
-  #ops{order:3;padding:0;gap:8px}
-  #opbtns{display:flex;overflow-x:auto;gap:6px;scrollbar-width:none;margin:0 -14px;padding:0 14px}
-  #opbtns::-webkit-scrollbar{display:none}
-  #opbtns .btn{height:44px;flex:1 0 auto;padding:0 9px}
-  #bDemo .long{display:none}
-}
-</style>
-<script type="importmap">
-{ "imports": {
-  "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
-  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
-} }
-</script>
-</head>
-<body>
-<canvas id="stage" tabindex="-1" aria-label="An AVL tree drawn as a hanging mobile. Use the controls to insert, delete and search values."></canvas>
-<div id="callout" aria-hidden="true"></div>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>AVL Mobile · 3D Data Structures</title>
+    <meta
+      name="description"
+      content="An interactive 3D AVL tree, hung as a mobile. Insert, delete and search values and watch every rotation happen."
+    />
+    <link rel="canonical" href="%VITE_SITE_URL%/avl/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="3D Data Structures" />
+    <meta property="og:title" content="AVL Mobile: a self-balancing tree in 3D" />
+    <meta
+      property="og:description"
+      content="Insert, delete and search values in an AVL tree hung as a mobile, and watch every rotation happen."
+    />
+    <meta property="og:url" content="%VITE_SITE_URL%/avl/" />
+    <meta name="theme-color" content="#ECE6DA" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/src/chapters/avl/avl.css" />
+  </head>
+  <body>
+    <canvas
+      id="stage"
+      tabindex="-1"
+      aria-label="An AVL tree drawn as a hanging mobile. Use the controls to insert, delete and search values."
+    ></canvas>
+    <div id="callout" aria-hidden="true"></div>
 
-<aside id="dock" aria-label="Controls">
-  <header id="masthead">
-    <div class="eyebrow">3D Data Structures · No. 1</div>
-    <h1>AVL Mobile</h1>
-    <div id="mstats" class="eyebrow"></div>
-    <p class="sub">A self-balancing binary search tree, hung as a mobile. <i>After G. Adelson-Velsky &amp; E. Landis, 1962.</i></p>
-  </header>
+    <aside id="dock" aria-label="Controls">
+      <header id="masthead">
+        <div class="eyebrow">3D Data Structures · No. 1</div>
+        <h1>AVL Mobile</h1>
+        <div id="mstats" class="eyebrow"></div>
+        <p class="sub">
+          A self-balancing binary search tree, hung as a mobile. <i>After G. Adelson-Velsky &amp; E. Landis, 1962.</i>
+        </p>
+      </header>
 
-  <section id="ops" class="card" aria-label="Operations">
-    <form id="opform" autocomplete="off" novalidate>
-      <div class="field">
-        <label for="val">Value (0–999)</label>
-        <input id="val" name="val" type="text" inputmode="numeric" enterkeyhint="done" placeholder="0–999" maxlength="6" aria-describedby="err">
-      </div>
-      <button class="btn primary" id="bInsert" type="submit">Insert</button>
-    </form>
-    <div id="err" role="alert"></div>
-    <div id="opbtns">
-      <button class="btn" id="bSearch" type="button">Search</button>
-      <button class="btn" id="bDelete" type="button">Delete</button>
-      <button class="btn" id="bRandom" type="button">Random</button>
-      <button class="btn accent" id="bDemo" type="button">Demo<span class="long"> · all four rotations</span></button>
-      <button class="btn quiet" id="bClear" type="button">Clear</button>
+      <section id="ops" class="card" aria-label="Operations">
+        <form id="opform" autocomplete="off" novalidate>
+          <div class="field">
+            <label for="val">Value (0–999)</label>
+            <input
+              id="val"
+              name="val"
+              type="text"
+              inputmode="numeric"
+              enterkeyhint="done"
+              placeholder="0–999"
+              maxlength="6"
+              aria-describedby="err"
+            />
+          </div>
+          <button class="btn primary" id="bInsert" type="submit">Insert</button>
+        </form>
+        <div id="err" role="alert"></div>
+        <div id="opbtns">
+          <button class="btn" id="bSearch" type="button">Search</button>
+          <button class="btn" id="bDelete" type="button">Delete</button>
+          <button class="btn" id="bRandom" type="button">Random</button>
+          <button class="btn accent" id="bDemo" type="button">
+            Demo<span class="long"> · all four rotations</span>
+          </button>
+          <button class="btn quiet" id="bClear" type="button">Clear</button>
+        </div>
+      </section>
+
+      <section id="placard" class="card" aria-live="polite">
+        <div class="prow">
+          <span class="eyebrow" id="opname">AVL Mobile</span><span class="eyebrow" id="stepno"></span>
+        </div>
+        <div id="head"></div>
+        <div id="body"></div>
+        <div id="chips"></div>
+      </section>
+
+      <div id="transport"></div>
+
+      <section id="complexity" aria-label="Complexity">
+        <div class="cx-title">Insert · delete · search in <i>O</i>(log <i>n</i>)</div>
+        <div id="cxline"></div>
+      </section>
+    </aside>
+
+    <div id="tools">
+      <button class="icon" id="bSound" type="button" aria-pressed="true" aria-label="Sound">
+        <svg
+          class="snd-on"
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M4 9 L8 9 L13 5 L13 19 L8 15 L4 15 Z" />
+          <path d="M16.5 9 A4 4 0 0 1 16.5 15" />
+          <path d="M19 6.5 A7.5 7.5 0 0 1 19 17.5" /></svg
+        ><svg
+          class="snd-off"
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M4 9 L8 9 L13 5 L13 19 L8 15 L4 15 Z" />
+          <path d="M17 9.5 L22 14.5 M22 9.5 L17 14.5" />
+        </svg>
+      </button>
+      <button class="icon" id="bFrame" type="button" aria-label="Reset view">
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M4 9 L4 4 L9 4" />
+          <path d="M15 4 L20 4 L20 9" />
+          <path d="M20 15 L20 20 L15 20" />
+          <path d="M9 20 L4 20 L4 15" />
+          <circle cx="12" cy="12" r="2.2" />
+        </svg>
+      </button>
+      <button class="icon" id="bHelp" type="button" aria-label="How to read the mobile">
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <circle cx="12" cy="12" r="9" />
+          <path d="M9.6 9.3 A2.5 2.5 0 1 1 12 12.4 L12 13.8" />
+          <path d="M12 17 L12 17.1" />
+        </svg>
+      </button>
     </div>
-  </section>
 
-  <section id="placard" class="card" aria-live="polite">
-    <div class="prow"><span class="eyebrow" id="opname">AVL Mobile</span><span class="eyebrow" id="stepno"></span></div>
-    <div id="head"></div>
-    <div id="body"></div>
-    <div id="chips"></div>
-  </section>
+    <aside id="legend" class="card" aria-label="Legend"></aside>
 
-  <div id="transport"></div>
+    <aside id="inspector" class="card" hidden aria-label="Selected node">
+      <div class="prow">
+        <span class="eyebrow">Selected node</span
+        ><button class="x" id="insClose" type="button" aria-label="Close">×</button>
+      </div>
+      <div class="ins-top">
+        <span id="insDisc"></span>
+        <div id="insState"></div>
+      </div>
+      <div class="ins-grid">
+        <div>
+          <div>Height</div>
+          <div id="insH"></div>
+        </div>
+        <div>
+          <div>Balance</div>
+          <div id="insBf"></div>
+        </div>
+        <div>
+          <div>Subtree size</div>
+          <div id="insSize"></div>
+        </div>
+        <div>
+          <div>Depth</div>
+          <div id="insDepth"></div>
+        </div>
+      </div>
+      <div id="insNote"></div>
+    </aside>
 
-  <section id="complexity" aria-label="Complexity">
-    <div class="cx-title">Insert · delete · search in <i>O</i>(log <i>n</i>)</div>
-    <div id="cxline"></div>
-  </section>
-</aside>
+    <div id="help" hidden role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+      <div class="card">
+        <div class="prow">
+          <h2 id="helpTitle">How to read the mobile</h2>
+          <button class="x" id="helpClose" type="button" aria-label="Close">×</button>
+        </div>
+        <p>
+          <b>Each disc is a node</b> and its number is the value. Smaller values hang to the left, larger to the right,
+          so reading the discs from left to right gives the sorted order.
+        </p>
+        <p>
+          <b>The badge is the balance factor:</b> the height of the left subtree minus the height of the right. Each arm
+          tilts toward the taller side.
+        </p>
+        <div class="lgwrap" id="helpLegend"></div>
+        <p>
+          <b>Cobalt</b> is the value being inserted, searched or deleted, and the wires it has followed. When a node
+          reaches ±2, the tree <b>rotates</b>: the link between two nodes turns about its middle like a see-saw, and the
+          red disc drops back into balance.
+        </p>
+        <div class="keys">
+          Drag to orbit · scroll or pinch to zoom · right-drag or two fingers to pan · click a disc to inspect it.<br /><kbd
+            >Space</kbd
+          >
+          play or pause · <kbd>←</kbd> <kbd>→</kbd> step · <kbd>Enter</kbd> insert · <kbd>?</kbd> this card
+        </div>
+        <label class="toggle"><input type="checkbox" id="optBadges" checked /> Show balance badges</label>
+      </div>
+    </div>
 
-<div id="tools">
-  <button class="icon" id="bSound" type="button" aria-pressed="true" aria-label="Sound"><svg class="snd-on" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9 L8 9 L13 5 L13 19 L8 15 L4 15 Z"/><path d="M16.5 9 A4 4 0 0 1 16.5 15"/><path d="M19 6.5 A7.5 7.5 0 0 1 19 17.5"/></svg><svg class="snd-off" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9 L8 9 L13 5 L13 19 L8 15 L4 15 Z"/><path d="M17 9.5 L22 14.5 M22 9.5 L17 14.5"/></svg></button>
-  <button class="icon" id="bFrame" type="button" aria-label="Reset view"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9 L4 4 L9 4"/><path d="M15 4 L20 4 L20 9"/><path d="M20 15 L20 20 L15 20"/><path d="M9 20 L4 20 L4 15"/><circle cx="12" cy="12" r="2.2"/></svg></button>
-  <button class="icon" id="bHelp" type="button" aria-label="How to read the mobile"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.3 A2.5 2.5 0 1 1 12 12.4 L12 13.8"/><path d="M12 17 L12 17.1"/></svg></button>
-</div>
-
-<aside id="legend" class="card" aria-label="Legend"></aside>
-
-<aside id="inspector" class="card" hidden aria-label="Selected node">
-  <div class="prow"><span class="eyebrow">Selected node</span><button class="x" id="insClose" type="button" aria-label="Close">×</button></div>
-  <div class="ins-top"><span id="insDisc"></span><div id="insState"></div></div>
-  <div class="ins-grid">
-    <div><div>Height</div><div id="insH"></div></div>
-    <div><div>Balance</div><div id="insBf"></div></div>
-    <div><div>Subtree size</div><div id="insSize"></div></div>
-    <div><div>Depth</div><div id="insDepth"></div></div>
-  </div>
-  <div id="insNote"></div>
-</aside>
-
-<div id="help" hidden role="dialog" aria-modal="true" aria-labelledby="helpTitle">
-  <div class="card">
-    <div class="prow"><h2 id="helpTitle">How to read the mobile</h2><button class="x" id="helpClose" type="button" aria-label="Close">×</button></div>
-    <p><b>Each disc is a node</b> and its number is the value. Smaller values hang to the left, larger to the right, so reading the discs from left to right gives the sorted order.</p>
-    <p><b>The badge is the balance factor:</b> the height of the left subtree minus the height of the right. Each arm tilts toward the taller side.</p>
-    <div class="lgwrap" id="helpLegend"></div>
-    <p><b>Cobalt</b> is the value being inserted, searched or deleted, and the wires it has followed. When a node reaches ±2, the tree <b>rotates</b>: the link between two nodes turns about its middle like a see-saw, and the red disc drops back into balance.</p>
-    <div class="keys">Drag to orbit · scroll or pinch to zoom · right-drag or two fingers to pan · click a disc to inspect it.<br><kbd>Space</kbd> play or pause · <kbd>←</kbd> <kbd>→</kbd> step · <kbd>Enter</kbd> insert · <kbd>?</kbd> this card</div>
-    <label class="toggle"><input type="checkbox" id="optBadges" checked> Show balance badges</label>
-  </div>
-</div>
-
-<script type="module">
-import * as THREE from 'three';
-import { createStage, plasterTexture, createFramer, isPhone, REDUCED, DEG } from '../shared/stage.js';
-import { drawNumerals, numeralSVG, numH } from '../shared/glyphs.js';
-import { Player, readingHold } from '../shared/player.js';
-import { mountTransport, placard, bindKeys, bindHelp, calloutPlacer } from '../shared/controls.js';
-import { Sound, bindSoundToggle } from '../shared/sound.js';
-import { mountNav } from '../shared/nav.js';
-
-/* =====================================================================
-   1. Constants and small helpers
-   ===================================================================== */
-const R = 0.5;          // disc radius
-const COL = 0.68;       // horizontal spacing: one column per value, in sorted order
-const ROW = 2.1;        // vertical spacing per level
-const STEM = 0.22;      // disc bottom to arm pivot
-const STUB = 0.34;      // length of an empty arm (a missing child)
-const BEAD = 1.0;       // where the value in hand rests above a disc
-const VR = 0.36;        // radius of the value in hand
-const SAG = 0.32;       // how far the heavy side of a ±2 node drops
-const WALL_Z = -1.7, CEIL = 60, MAX_NODES = 60;
-const HEX = { ink: 0x1B1A17, yellow: 0xE8A817, red: 0xD1361E, cobalt: 0x2346A8 };
-const NUMHEX = { ink: 0xEFE8DA, yellow: 0x1B1A17, red: 0xFFF6EA, cobalt: 0xFFFFFF };
-const FILL = {}, NUMC = {};
-for (const k in HEX) { FILL[k] = new THREE.Color(HEX[k]); NUMC[k] = new THREE.Color(NUMHEX[k]); }
-const C_INK = new THREE.Color(HEX.ink), C_COB = new THREE.Color(HEX.cobalt);
-
-const clamp01 = x => (x < 0 ? 0 : x > 1 ? 1 : x);
-const lerp = (a, b, t) => a + (b - a) * t;
-const seg = (t, a, b) => clamp01((t - a) / (b - a));
-const smooth = (a, b, t) => { const x = seg(t, a, b); return x * x * (3 - 2 * x); };
-const easeInOut = t => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
-const easeOut = t => 1 - Math.pow(1 - t, 3);
-const easeBack = t => { // gentle anticipation and overshoot: the swing has weight
-  const c1 = 0.9, c2 = c1 * 1.525;
-  return t < 0.5 ? (Math.pow(2 * t, 2) * ((c2 + 1) * 2 * t - c2)) / 2
-                 : (Math.pow(2 * t - 2, 2) * ((c2 + 1) * (t * 2 - 2) + c2) + 2) / 2;
-};
-const fmtBf = b => (b > 0 ? `+${b}` : b < 0 ? `−${-b}` : '0');
-const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
-const stateOf = bf => (Math.abs(bf) >= 2 ? 'red' : Math.abs(bf) === 1 ? 'yellow' : 'ink');
-const sideName = s => (s === 'l' ? 'left' : 'right');
-const lkey = L => `${L.p ?? '^'}>${L.c}`;
-
-/* =====================================================================
-   3. The AVL tree. Runs instantly and records every step with a snapshot.
-   ===================================================================== */
-class AVL {
-  constructor() { this.n = {}; this.root = null; this.next = 1; }
-  get count() { return Object.keys(this.n).length; }
-  h(id) { return id == null ? 0 : this.n[id].h; }
-  snap() {
-    const n = {};
-    for (const k in this.n) { const o = this.n[k]; n[k] = { v: o.v, l: o.l, r: o.r, h: o.h, bf: o.bf }; }
-    return { root: this.root, n };
-  }
-  has(v) { let c = this.root; while (c != null) { const o = this.n[c]; if (o.v === v) return true; c = v < o.v ? o.l : o.r; } return false; }
-  fix(id) { const o = this.n[id]; o.h = 1 + Math.max(this.h(o.l), this.h(o.r)); o.bf = this.h(o.l) - this.h(o.r); }
-  link(p, side, id) { if (p == null) this.root = id; else this.n[p][side] = id; }
-  rotRight(z, p, side) { const Z = this.n[z], y = Z.l, Y = this.n[y], t2 = Y.r; Z.l = t2; Y.r = z; this.link(p, side, y); this.fix(z); this.fix(y); return { y, t2 }; }
-  rotLeft(z, p, side) { const Z = this.n[z], y = Z.r, Y = this.n[y], t2 = Y.l; Z.r = t2; Y.l = z; this.link(p, side, y); this.fix(z); this.fix(y); return { y, t2 }; }
-  // silent insert, used for the opening tree
-  quickInsert(v) { opInsert(this, v); }
-}
-
-function recorder(t, op) {
-  const steps = [], ctx = { path: [], cmp: 0 };
-  const push = (kind, o) => steps.push({ kind, op, snap: t.snap(), path: ctx.path.slice(), ...o });
-  return { steps, ctx, push };
-}
-
-const CASE_NOTE = { LL: 'single right rotation', RR: 'single left rotation', LR: 'left, then right', RL: 'right, then left' };
-
-// Walk back up from the deepest changed node, fixing heights and rotating where needed.
-function retrace(t, anc, push, ctx) {
-  const total = () => t.count;
-  for (let i = anc.length - 1; i >= 0; i--) {
-    const id = anc[i];
-    const o = t.n[id];
-    const h0 = o.h;
-    t.fix(id);
-    const parent = i > 0 ? anc[i - 1] : null;
-    const ps = parent == null ? null : (t.n[parent].l === id ? 'l' : 'r');
-    if (Math.abs(o.bf) <= 1) {
-      const hTxt = o.h === h0 ? `height stays ${o.h}` : `height ${h0} → ${o.h}`;
-      const bTxt = o.bf === 0 ? 'Both sides are equally tall.' : `It leans ${o.bf > 0 ? 'left' : 'right'} by one level. That is still allowed.`;
-      push('update', { focus: id, head: `Back at ${o.v}: ${hTxt}, balance ${fmtBf(o.bf)}.`, body: bTxt, co: { h: o.h, bf: o.bf } });
-      if (o.h === h0) {
-        ctx.path = [];
-        push('done', { head: 'Balanced.', body: `${o.v}'s height did not change, so nothing above it can change either. ${plural(ctx.cmp, 'comparison')} for ${total()} values.` });
-        return;
-      }
-      continue;
-    }
-    const heavy = o.bf > 0 ? 'l' : 'r';
-    push('update', { focus: id, head: `Back at ${o.v}: balance ${fmtBf(o.bf)}.`, body: `Its ${sideName(heavy)} side is now two levels taller. The AVL rule allows a difference of one at most.`, co: { h: o.h, bf: o.bf } });
-    const c = o[heavy], C = t.n[c];
-    let kase;
-    if (o.bf > 0) kase = C.bf >= 0 ? 'LL' : 'LR'; else kase = C.bf <= 0 ? 'RR' : 'RL';
-    const grand = kase === 'LR' ? C.r : kase === 'RL' ? C.l : null;
-    let why;
-    if (kase === 'LL' || kase === 'RR') {
-      const d = kase === 'LL' ? 'right' : 'left', lean = kase === 'LL' ? 'left' : 'right';
-      why = C.bf === 0
-        ? `Its ${lean} child ${C.v} is level (0), so one ${d} rotation around ${o.v} is enough. This is the ${kase} case.`
-        : `Its ${lean} child ${C.v} leans ${lean} too (${fmtBf(C.bf)}), so this is the ${kase} case. One ${d} rotation around ${o.v} fixes it.`;
-    } else {
-      const lean = kase === 'LR' ? 'left' : 'right', other = kase === 'LR' ? 'right' : 'left';
-      why = `But its ${lean} child ${C.v} leans the other way (${fmtBf(C.bf)}). That bend is the ${kase} case: rotate ${other} around ${C.v}, then ${lean === 'left' ? 'right' : 'left'} around ${o.v}.`;
-    }
-    push('imbalance', { focus: id, child: c, grand, kase, head: `${o.v} is ${o.bf > 0 ? 'left' : 'right'}-heavy (balance ${fmtBf(o.bf)}).`, body: why, chip: kase });
-    let top;
-    const rotText = (dir, z, y, t2, part) => {
-      const Z = t.n[z], Y = t.n[y], zSide = dir === 'left' ? 'left' : 'right';
-      const moved = t2 != null ? ` ${t.n[t2].v} moves across, from ${Y.v}'s ${zSide === 'left' ? 'left' : 'right'} to ${Z.v}'s ${zSide === 'left' ? 'right' : 'left'}. It still sits between them in sorted order.` : '';
-      const head = part ? `Step ${part} of 2: rotate ${dir} around ${Z.v}.` : `Rotate ${dir} around ${Z.v}.`;
-      const lead = part === 1
-        ? `${Y.v} swings up above ${Z.v}, which straightens the bend into the ${kase === 'LR' ? 'LL' : 'RR'} shape.`
-        : `${Y.v} swings up into ${Z.v}'s place and ${Z.v} swings down to become its ${zSide} child.`;
-      return { head, body: `${lead}${moved} New heights: ${Z.v} is ${Z.h}, ${Y.v} is ${Y.h}.` };
-    };
-    if (kase === 'LL' || kase === 'RR') {
-      const dir = kase === 'LL' ? 'right' : 'left';
-      const r = dir === 'right' ? t.rotRight(id, parent, ps) : t.rotLeft(id, parent, ps);
-      push('rotate', { focus: r.y, rot: { dir, z: id, y: r.y, t2: r.t2, p: parent, side: ps }, kase, chip: kase, ...rotText(dir, id, r.y, r.t2, 0) });
-      top = r.y;
-    } else {
-      const d1 = kase === 'LR' ? 'left' : 'right', d2 = kase === 'LR' ? 'right' : 'left';
-      const r1 = d1 === 'left' ? t.rotLeft(c, id, heavy) : t.rotRight(c, id, heavy);
-      push('rotate', { focus: r1.y, rot: { dir: d1, z: c, y: r1.y, t2: r1.t2, p: id, side: heavy }, kase, chip: kase, part: 1, ...rotText(d1, c, r1.y, r1.t2, 1) });
-      const r2 = d2 === 'right' ? t.rotRight(id, parent, ps) : t.rotLeft(id, parent, ps);
-      push('rotate', { focus: r2.y, rot: { dir: d2, z: id, y: r2.y, t2: r2.t2, p: parent, side: ps }, kase, chip: kase, part: 2, ...rotText(d2, id, r2.y, r2.t2, 2) });
-      top = r2.y;
-    }
-    anc[i] = top;
-    if (t.n[top].h === h0) {
-      ctx.path = [];
-      push('done', { head: 'Balanced again.', body: `The rotated subtree is back to height ${h0}, so nothing above it changes. ${plural(ctx.cmp, 'comparison')} for ${total()} values.` });
-      return;
-    }
-  }
-  ctx.path = [];
-  push('done', { head: 'Done.', body: `Every node up to the top is within ±1. ${plural(ctx.cmp, 'comparison')} for ${total()} values.` });
-}
-
-function opInsert(t, v, note = '') {
-  const { steps, ctx, push } = recorder(t, `Insert ${v}`);
-  if (t.root == null) {
-    push('start', { head: `Insert ${v}.`, body: `The wall is empty, so ${v} will hang at the top as the root.${note}`, visitor: { v, top: true } });
-    const id = t.next++; t.n[id] = { v, l: null, r: null, h: 1, bf: 0 }; t.root = id; ctx.path = [id];
-    push('place', { focus: id, placed: id, head: `${v} is the root.`, body: 'A lone node has height 1 and balance 0.' });
-    ctx.path = [];
-    push('done', { head: 'Done.', body: 'One value on the wall. Insert more and watch it keep its balance.' });
-    return steps;
-  }
-  push('start', { head: `Insert ${v}.`, body: `It starts at the top and follows the wires down, comparing at each disc.${note}`, visitor: { v, top: true } });
-  const anc = [];
-  let cur = t.root;
-  ctx.path = [cur];
-  for (;;) {
-    const o = t.n[cur]; ctx.cmp++;
-    if (v === o.v) {
-      push('duplicate', { focus: cur, visitor: { v, at: cur, shake: true }, head: `${v} is already in the tree.`, body: 'An AVL tree stores each key once, so the insert stops here. Nothing changes.' });
-      ctx.path = [];
-      push('done', { head: 'No change.', body: `${v} was found after ${plural(ctx.cmp, 'comparison')}.` });
-      return steps;
-    }
-    const side = v < o.v ? 'l' : 'r', dir = sideName(side);
-    push('compare', { focus: cur, visitor: { v, at: cur }, cmp: { a: v, b: o.v, side },
-      head: `${v} ${side === 'l' ? '<' : '>'} ${o.v}, so go ${dir}.`,
-      body: side === 'l' ? `Everything hanging to the left of ${o.v} is smaller than ${o.v}.` : `Everything hanging to the right of ${o.v} is larger than ${o.v}.` });
-    anc.push(cur);
-    const nx = o[side];
-    if (nx == null) {
-      push('descend', { focus: cur, visitor: { v, hook: { p: cur, side } }, from: cur, head: `${o.v}'s ${dir} hook is empty.`, body: `${v} will hang there as a new leaf.` });
-      const id = t.next++; t.n[id] = { v, l: null, r: null, h: 1, bf: 0 }; o[side] = id; ctx.path.push(id);
-      push('place', { focus: id, placed: id, head: `${v} hangs as ${o.v}'s ${dir} child.`, body: 'A new leaf has height 1 and balance 0. Now walk back up, updating each ancestor.' });
-      break;
-    }
-    ctx.path.push(nx);
-    push('descend', { focus: nx, visitor: { v, at: nx }, from: cur, head: `Down the ${dir} wire to ${t.n[nx].v}.`, body: `${plural(ctx.cmp, 'comparison')} so far.` });
-    cur = nx;
-  }
-  retrace(t, anc, push, ctx);
-  return steps;
-}
-
-function opSearch(t, v) {
-  const { steps, ctx, push } = recorder(t, `Search ${v}`);
-  if (t.root == null) {
-    push('start', { head: `Search for ${v}.`, body: 'The wall is empty.', visitor: { v, top: true } });
-    push('missing', { visitor: { v, top: true, fall: true }, head: `${v} is not in the tree.`, body: 'An empty tree holds nothing.' });
-    return steps;
-  }
-  push('start', { head: `Search for ${v}.`, body: 'Start at the top and follow the wires, comparing at each disc.', visitor: { v, top: true } });
-  let cur = t.root; ctx.path = [cur];
-  for (;;) {
-    const o = t.n[cur]; ctx.cmp++;
-    if (v === o.v) {
-      push('found', { focus: cur, visitor: { v, merge: cur }, cmpN: ctx.cmp, head: `Found ${v}.`, body: `${plural(ctx.cmp, 'comparison')} among ${t.count} values. The path can never be longer than the tree is tall, which is why search is O(log n).` });
-      ctx.path = [];
-      push('done', { head: 'Done.', body: `Found in ${plural(ctx.cmp, 'comparison')}. A balanced tree with ${t.count} values is at most ${maxAvlHeight(t.count)} levels tall.` });
-      return steps;
-    }
-    const side = v < o.v ? 'l' : 'r', dir = sideName(side);
-    push('compare', { focus: cur, visitor: { v, at: cur }, cmp: { a: v, b: o.v, side }, head: `${v} ${side === 'l' ? '<' : '>'} ${o.v}, so go ${dir}.`, body: side === 'l' ? `If ${v} is here at all, it hangs to the left of ${o.v}.` : `If ${v} is here at all, it hangs to the right of ${o.v}.` });
-    const nx = o[side];
-    if (nx == null) {
-      push('missing', { focus: cur, visitor: { v, hook: { p: cur, side }, fall: true }, from: cur, head: `${v} is not in the tree.`, body: `${o.v}'s ${dir} hook is empty, so there is nowhere left to look. ${plural(ctx.cmp, 'comparison')}.` });
-      ctx.path = [];
-      push('done', { head: 'Done.', body: `Not found after ${plural(ctx.cmp, 'comparison')}. Even a miss only walks one path from top to bottom.` });
-      return steps;
-    }
-    ctx.path.push(nx);
-    push('descend', { focus: nx, visitor: { v, at: nx }, from: cur, head: `Down the ${dir} wire to ${t.n[nx].v}.`, body: `${plural(ctx.cmp, 'comparison')} so far.` });
-    cur = nx;
-  }
-}
-
-function opDelete(t, v) {
-  const { steps, ctx, push } = recorder(t, `Delete ${v}`);
-  if (t.root == null) {
-    push('start', { head: `Delete ${v}.`, body: 'The wall is empty.', visitor: { v, top: true } });
-    push('missing', { visitor: { v, top: true, fall: true }, head: `${v} is not in the tree.`, body: 'Nothing to delete.' });
-    return steps;
-  }
-  push('start', { head: `Delete ${v}.`, body: 'First find it: follow the wires down from the top.', visitor: { v, top: true } });
-  const anc = [];
-  let cur = t.root; ctx.path = [cur];
-  for (;;) {
-    const o = t.n[cur]; ctx.cmp++;
-    if (v === o.v) break;
-    const side = v < o.v ? 'l' : 'r', dir = sideName(side);
-    push('compare', { focus: cur, visitor: { v, at: cur }, cmp: { a: v, b: o.v, side }, head: `${v} ${side === 'l' ? '<' : '>'} ${o.v}, so go ${dir}.`, body: side === 'l' ? `If ${v} is here, it hangs to the left of ${o.v}.` : `If ${v} is here, it hangs to the right of ${o.v}.` });
-    const nx = o[side];
-    if (nx == null) {
-      push('missing', { focus: cur, visitor: { v, hook: { p: cur, side }, fall: true }, from: cur, head: `${v} is not in the tree.`, body: `${o.v}'s ${dir} hook is empty. Nothing to delete.` });
-      ctx.path = [];
-      push('done', { head: 'No change.', body: `${v} is not here, so the tree stays as it is.` });
-      return steps;
-    }
-    anc.push(cur);
-    ctx.path.push(nx);
-    push('descend', { focus: nx, visitor: { v, at: nx }, from: cur, head: `Down the ${dir} wire to ${t.n[nx].v}.`, body: `${plural(ctx.cmp, 'comparison')} so far.` });
-    cur = nx;
-  }
-  const d = cur, D = t.n[d];
-  const parent = anc.length ? anc[anc.length - 1] : null;
-  const pside = parent == null ? null : (t.n[parent].l === d ? 'l' : 'r');
-  const kids = (D.l != null) + (D.r != null);
-  push('found', { focus: d, visitor: { v, merge: d }, head: `Found ${v}.`,
-    body: kids === 0 ? 'It is a leaf, so it can simply be lifted off.' : kids === 1 ? `It has one child, ${t.n[D.l ?? D.r].v}, which will move up into its place.` : 'It has two children. Its place goes to its successor: the smallest value in its right subtree.' });
-  let chain;
-  if (kids < 2) {
-    const c = D.l ?? D.r;
-    t.link(parent, pside, c); delete t.n[d];
-    ctx.path = ctx.path.filter(x => x !== d);
-    push('remove', { removed: d, lifted: c, head: c == null ? `Lift ${v} off its hook.` : `Lift ${v} out; ${t.n[c].v} moves up.`,
-      body: c == null ? 'A leaf has nothing hanging below it, so removing it is safe.' : `${t.n[c].v}'s whole subtree takes ${v}'s hook. Left-to-right order does not change.` });
-    chain = anc.slice();
-  } else {
-    let s = D.r, sp = d; const sPath = [];
-    ctx.path.push(s);
-    push('succ', { focus: s, head: `Successor: one step right, to ${t.n[s].v}.`, body: t.n[s].l != null ? 'Then go left as far as possible.' : `${t.n[s].v} has no left child, so it is the successor.` });
-    while (t.n[s].l != null) {
-      sPath.push(s); sp = s; s = t.n[s].l; ctx.path.push(s);
-      push('succ', { focus: s, head: `Left to ${t.n[s].v}.`, body: t.n[s].l != null ? 'Keep going left.' : `${t.n[s].v} has no left child, so it is the successor: the next value after ${v}.` });
-    }
-    const S = t.n[s], sr = S.r;
-    if (sp === d) { S.l = D.l; } else { t.n[sp].l = sr; S.l = D.l; S.r = D.r; }
-    S.h = D.h; S.bf = D.bf; // it inherits the spot, and the spot's last known height, until the walk up reaches it
-    t.link(parent, pside, s); delete t.n[d];
-    ctx.path = ctx.path.filter(x => x !== d);
-    push('replace', { removed: d, succ: s, focus: s, head: `${S.v} takes ${v}'s place.`,
-      body: `${v} is lifted out and ${S.v} moves up into its spot. ${S.v} is larger than everything on the left and smaller than everything on the right, so the order holds.${sr != null && sp !== d ? ` ${t.n[sr].v} moves up to ${S.v}'s old hook.` : ''}` });
-    chain = anc.concat([s], sPath);
-  }
-  if (!chain.length) {
-    ctx.path = [];
-    push('done', { head: 'Done.', body: t.root == null ? 'The wall is empty again.' : 'The top of the tree changed, and it is still balanced.' });
-    return steps;
-  }
-  retrace(t, chain, push, ctx);
-  return steps;
-}
-
-function opClear(t) {
-  const { steps, push } = recorder(t, 'Clear');
-  t.n = {}; t.root = null;
-  push('clear', { head: 'Cleared.', body: 'Every disc is lifted off the wall.' });
-  return steps;
-}
-
-const DEMO = [30, 20, 10, 40, 50, 35, 15];
-const DEMO_INTRO = { head: 'Seven inserts, four rotations.', body: 'Watch for the red disc: each time one appears, the tree rotates it back into balance. The chips below tick off each case as it happens.' };
-const DEMO_NOTE = {
-  10: ' Watch 30: this one tips it left twice over, the LL case.',
-  50: ' This tips 30 the other way: the RR case.',
-  35: ' This one makes a bend on the right: the RL case.',
-  15: ' And the mirror image on the left: the LR case.',
-};
-function opDemo(t) {
-  const steps = [];
-  if (t.root != null) steps.push(...opClear(t));
-  for (const v of DEMO) steps.push(...opInsert(t, v, DEMO_NOTE[v] || ''));
-  return steps;
-}
-
-function maxAvlHeight(n) { // tallest AVL tree possible with n nodes
-  if (n <= 0) return 0;
-  let a = 1, b = 2, h = 1; // N(1)=1, N(2)=2
-  if (n < 2) return 1;
-  h = 2;
-  while (true) { const c = 1 + a + b; if (c > n) return h; a = b; b = c; h++; }
-}
-
-/* =====================================================================
-   4. Layout: one column per value (in-order), one row per level
-   ===================================================================== */
-function layoutSnap(snap) {
-  const pos = new Map();
-  if (snap.root == null) return pos;
-  const order = [];
-  (function walk(id, d) { if (id == null) return; const n = snap.n[id]; walk(n.l, d + 1); order.push([id, d]); walk(n.r, d + 1); })(snap.root, 0);
-  const cnt = order.length;
-  order.forEach(([id, d], k) => pos.set(id, { x: (k - (cnt - 1) / 2) * COL, y: -d * ROW, d, col: k }));
-  const sag = (id, dy) => { if (id == null) return; pos.get(id).y -= dy; const n = snap.n[id]; sag(n.l, dy); sag(n.r, dy); };
-  for (const [id] of order) { const n = snap.n[id]; if (Math.abs(n.bf) >= 2) sag(n.bf > 0 ? n.l : n.r, SAG); }
-  return pos;
-}
-function linksOf(snap) {
-  const L = new Map();
-  if (snap.root != null) L.set(`^>${snap.root}`, { p: null, c: snap.root, side: 'c' });
-  for (const k in snap.n) {
-    const n = snap.n[k], id = +k;
-    if (n.l != null) L.set(`${id}>${n.l}`, { p: id, c: n.l, side: 'l' });
-    if (n.r != null) L.set(`${id}>${n.r}`, { p: id, c: n.r, side: 'r' });
-  }
-  return L;
-}
-function subtreeIds(snap, id, out = new Set()) {
-  if (id == null) return out;
-  out.add(id); const n = snap.n[id]; subtreeIds(snap, n.l, out); subtreeIds(snap, n.r, out); return out;
-}
-const bead = p => ({ x: p.x, y: p.y + BEAD, z: 0 });
-const hookPoint = (p, side) => ({ x: p.x + (side === 'l' ? -STUB : STUB), y: p.y - R - STEM - 0.18 - VR, z: 0 });
-
-/* =====================================================================
-   5. Poses: a pure description of everything on the wall at one instant.
-      Every step is a function pose(t), t in [0,1], so stepping back simply
-      plays the same motion in reverse.
-   ===================================================================== */
-function setState(n, stA, stB, m) {
-  n.stA = stA; n.stB = stB; n.m = m;
-  const a = FILL[stA], b = FILL[stB], na = NUMC[stA], nb = NUMC[stB];
-  n.fr = lerp(a.r, b.r, m); n.fg = lerp(a.g, b.g, m); n.fb = lerp(a.b, b.b, m);
-  n.nr = lerp(na.r, nb.r, m); n.ng = lerp(na.g, nb.g, m); n.nb = lerp(na.b, nb.b, m);
-}
-function mkNode(id, v, x, y, bf) {
-  const n = { id, v, x, y, z: 0, a: 1, s: 1, bf, ringC: 0 };
-  const st = stateOf(bf); setState(n, st, st, 0);
-  return n;
-}
-function emptyPose() { return { nodes: new Map(), links: [], visitor: null, lever: null, clips: [], slot: null, arc: null, callout: null, hooks: [] }; }
-function staticPose(snap) {
-  const P = emptyPose(), pos = layoutSnap(snap);
-  for (const [id, p] of pos) P.nodes.set(id, mkNode(id, snap.n[id].v, p.x, p.y, snap.n[id].bf));
-  for (const L of linksOf(snap).values()) P.links.push({ ...L, ext: 1, cob: 0 });
-  return P;
-}
-function pathPoint(pts, u) {
-  let total = 0; const lens = [];
-  for (let i = 1; i < pts.length; i++) { const d = Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y, pts[i].z - pts[i - 1].z); lens.push(d); total += d; }
-  let d = u * total;
-  for (let i = 0; i < lens.length; i++) {
-    if (d <= lens[i] || i === lens.length - 1) { const f = lens[i] ? clamp01(d / lens[i]) : 1; const a = pts[i], b = pts[i + 1]; return { x: lerp(a.x, b.x, f), y: lerp(a.y, b.y, f), z: lerp(a.z, b.z, f) }; }
-    d -= lens[i];
-  }
-  return { ...pts[pts.length - 1] };
-}
-// The value in hand follows the real wires: past the disc, along the arm, down the next wire.
-function descendPts(pp, to) {
-  const py = pp.y - R - STEM;
-  return [bead(pp), { x: pp.x, y: pp.y + 0.05, z: 0.55 }, { x: pp.x, y: py, z: 0.3 }, { x: to.x, y: py, z: 0.25 }, { x: to.x, y: to.y, z: 0 }];
-}
-const visAtRest = st => (st && st.visitor && !st.visitor.merge && !st.visitor.fall && !st.visitor.shake ? st.visitor : null);
-function resolveVisitor(vis, pos, snap) {
-  if (!vis) return null;
-  if (vis.merge != null) { const p = pos.get(vis.merge); return p ? { x: p.x, y: p.y, z: 0 } : null; }
-  if (vis.at != null) { const p = pos.get(vis.at); return p ? bead(p) : null; }
-  if (vis.hook) { const p = pos.get(vis.hook.p); return p ? hookPoint(p, vis.hook.side) : null; }
-  if (vis.top) { const r = snap.root != null ? pos.get(snap.root) : null; return r ? bead(r) : { x: 0, y: BEAD - 0.4, z: 0 }; }
-  return null;
-}
-
-const DUR = { start: 0.95, compare: 0.7, descend: 0.85, place: 1.1, update: 0.8, imbalance: 1.15, rotate: 2.9, found: 1.0, missing: 1.25, duplicate: 1.1, remove: 1.35, replace: 1.7, succ: 0.8, done: 0.9, clear: 1.5 };
-const TSW = { update: 0.3, rotate: 0.84, place: 0.6, replace: 0.7, remove: 0.6 };
-const MV = { place: [0.08, 0.85], update: [0.15, 0.75], remove: [0.2, 0.78], replace: [0.2, 0.78] };
-
-function prepRotation(r, A, B, posA, posB) {
-  const ZA = posA.get(r.z), YA = posA.get(r.y), ZB = posB.get(r.z), YB = posB.get(r.y);
-  const MA = { x: (ZA.x + YA.x) / 2, y: (ZA.y + YA.y) / 2 }, MB = { x: (ZB.x + YB.x) / 2, y: (ZB.y + YB.y) / 2 };
-  const vA = { x: YA.x - MA.x, y: YA.y - MA.y }, vB = { x: YB.x - MB.x, y: YB.y - MB.y };
-  const angA = Math.atan2(vA.y, vA.x), angB = Math.atan2(vB.y, vB.x);
-  let d = angB - angA;
-  if (r.dir === 'left') { while (d <= 0) d += 2 * Math.PI; while (d > 2 * Math.PI) d -= 2 * Math.PI; }
-  else { while (d >= 0) d -= 2 * Math.PI; while (d < -2 * Math.PI) d += 2 * Math.PI; }
-  const lA = Math.hypot(vA.x, vA.y), lB = Math.hypot(vB.x, vB.y);
-  const Yb = B.n[r.y], Zb = B.n[r.z];
-  const yF = subtreeIds(B, r.dir === 'right' ? Yb.l : Yb.r);
-  const zF = subtreeIds(B, r.dir === 'right' ? Zb.r : Zb.l);
-  const pair = u => {
-    const ang = angA + d * u, L = lerp(lA, lB, u), M = { x: lerp(MA.x, MB.x, u), y: lerp(MA.y, MB.y, u) };
-    const c = Math.cos(ang) * L, s = Math.sin(ang) * L;
-    return { Y: { x: M.x + c, y: M.y + s }, Z: { x: M.x - c, y: M.y - s }, M, ang, L };
-  };
-  const U = t => easeBack(seg(t, 0.2, 0.8));
-  const P0 = r.p ?? '^';
-  const kPZ = `${P0}>${r.z}`, kPY = `${P0}>${r.y}`, kZY = `${r.z}>${r.y}`, kYZ = `${r.y}>${r.z}`;
-  const kYT = r.t2 != null ? `${r.y}>${r.t2}` : null, kZT = r.t2 != null ? `${r.z}>${r.t2}` : null;
-  const T2A = r.t2 != null ? posA.get(r.t2) : null;
-  const clipPt = T2A ? { x: T2A.x, y: YA.y - R - STEM, z: 0 } : null;
-  const lin = (id, u) => { const a = posA.get(id), b = posB.get(id); return { x: lerp(a.x, b.x, u), y: lerp(a.y, b.y, u) }; };
-  return {
-    pair, U,
-    place(n, t) {
-      const u = U(t), pp = pair(u);
-      if (n.id === r.y) { n.x = pp.Y.x; n.y = pp.Y.y; }
-      else if (n.id === r.z) { n.x = pp.Z.x; n.y = pp.Z.y; }
-      else if (yF.has(n.id)) { const b = lin(n.id, u), yl = lin(r.y, u); n.x = b.x + pp.Y.x - yl.x; n.y = b.y + pp.Y.y - yl.y; }
-      else if (zF.has(n.id)) { const b = lin(n.id, u), zl = lin(r.z, u); n.x = b.x + pp.Z.x - zl.x; n.y = b.y + pp.Z.y - zl.y; }
-      else { const b = lin(n.id, easeInOut(seg(t, 0.2, 0.8))); n.x = b.x; n.y = b.y; }
-      if (n.id === r.y || n.id === r.z) n.ringC = smooth(0, 0.12, t) * (1 - smooth(0.9, 1, t));
-    },
-    skip(k) { return k === kPZ || k === kPY; },
-    linkExt(k, t) {
-      if (k === kZY) return 1 - smooth(0.02, 0.18, t);
-      if (k === kYZ) return smooth(0.82, 0.98, t);
-      if (k === kYT) return 1 - smooth(0.06, 0.2, t);
-      if (k === kZT) return smooth(0.8, 0.96, t);
-      return null;
-    },
-    extras(P, t, cobSlot, arcFrom) {
-      const Zn = P.nodes.get(r.z), Yn = P.nodes.get(r.y);
-      const lev = Math.min(smooth(0.03, 0.2, t), 1 - smooth(0.8, 0.97, t));
-      if (lev > 0.001) P.lever = { a: r.z, b: r.y, ext: lev };
-      const q = easeInOut(seg(t, 0.2, 0.8));
-      P.slot = { p: r.p, side: r.side, x: lerp(Zn.x, Yn.x, q), y: lerp(Zn.y, Yn.y, q) + (R + 0.1) * (1 - 4 * q * (1 - q)), z: 0, cob: cobSlot };
-      if (clipPt) { const a = smooth(0.05, 0.15, t) * (1 - smooth(0.9, 1, t)); if (a > 0.001) P.clips.push({ ...clipPt, c: r.t2, a }); }
-      const aa = lerp(arcFrom, 1, smooth(0.04, 0.2, t)) * (1 - smooth(0.7, 0.84, t));
-      const pp = pair(U(t));
-      if (aa > 0.001) P.arc = { x: pp.M.x, y: pp.M.y, r: pp.L + 0.62, ang: pp.ang, dir: r.dir === 'left' ? 1 : -1, a: aa };
-      P.callout = { text: `rotate ${r.dir}`, x: pp.M.x, y: pp.M.y, side: r.dir === 'left' ? 'r' : 'l', off: pp.L + 0.9, tone: 'cobalt', a: smooth(0.08, 0.22, t) * (1 - smooth(0.78, 0.92, t)) };
-    },
-  };
-}
-
-function buildTransition(prog, i) {
-  const st = prog.steps[i], prev = i > 0 ? prog.steps[i - 1] : null;
-  const A = prev ? prev.snap : prog.startSnap, B = st.snap;
-  const posA = layoutSnap(A), posB = layoutSnap(B);
-  const LA = linksOf(A), LB = linksOf(B);
-  const kind = st.kind;
-  const pathA = prev ? prev.path : [], pathB = st.path;
-  const focA = prev ? prev.focus : null, focB = st.focus;
-  const vA = visAtRest(prev), vPA = vA ? resolveVisitor(vA, posA, A) : null;
-  const vB = st.visitor, vPB = vB ? resolveVisitor(vB, posB, B) : null;
-  const vVal = vB ? vB.v : vA ? vA.v : null;
-  const ids = new Set([...posA.keys(), ...posB.keys()]);
-  const keys = new Set([...LA.keys(), ...LB.keys()]);
-  const rot = kind === 'rotate' ? prepRotation(st.rot, A, B, posA, posB) : null;
-  const tSw = TSW[kind] ?? 0.5;
-  const mv = MV[kind] || [0, 1];
-  let dpts = null;
-  if (kind === 'descend' && vPA && vPB) dpts = descendPts(posA.get(st.from), vPB);
-  if (kind === 'missing' && st.from != null && vPA) dpts = descendPts(posA.get(st.from), hookPoint(posA.get(st.from), st.visitor.hook.side));
-  const arcFrom = prev && prev.kind === 'imbalance' ? 0.45 : 0;
-  const slotCob = rot && (pathA.includes(st.rot.z) || pathA.includes(st.rot.y) || pathB.includes(st.rot.y)) ? 1 : 0;
-  const lifting = kind === 'remove' || kind === 'replace';
-  // nodes that change parent while something is lifted out are held by clips until their new arm arrives
-  const rehung = [];
-  if (lifting) {
-    const inA = new Map(), inB = new Map();
-    for (const [k, L] of LA) inA.set(L.c, k);
-    for (const [k, L] of LB) inB.set(L.c, k);
-    for (const id of posB.keys()) if (inA.has(id) && inA.get(id) !== inB.get(id)) rehung.push(id);
-  }
-
-  function pose(t) {
-    const P = emptyPose();
-    const em = easeInOut(seg(t, mv[0], mv[1]));
-    for (const id of ids) {
-      const a = posA.get(id), b = posB.get(id);
-      let n;
-      if (a && b) {
-        const oA = A.n[id], oB = B.n[id];
-        n = mkNode(id, oB.v, lerp(a.x, b.x, em), lerp(a.y, b.y, em), t < tSw ? oA.bf : oB.bf);
-        setState(n, stateOf(oA.bf), stateOf(oB.bf), smooth(tSw - 0.08, tSw + 0.12, t));
-        if (rot) rot.place(n, t);
-      } else if (b) {
-        const oB = B.n[id];
-        n = mkNode(id, oB.v, b.x, b.y, oB.bf);
-        if (kind === 'place' && id === st.placed && vPA) {
-          n.x = lerp(vPA.x, b.x, em); n.y = lerp(vPA.y, b.y, em);
-          setState(n, 'cobalt', stateOf(oB.bf), smooth(0.5, 0.95, t));
-          n.s = lerp(VR / R, 1, easeInOut(seg(t, 0, 0.6)));
-        } else { n.y = b.y + 1.5 * (1 - em); n.a = smooth(0, 0.6, t); }
-      } else {
-        const oA = A.n[id];
-        n = mkNode(id, oA.v, a.x, a.y, oA.bf);
-        if (kind === 'clear') { // the whole mobile is taken down, lower levels trailing
-          const e = seg(t, 0.04 * a.d, 0.55 + 0.04 * a.d);
-          n.y += 16 * e * e * e; n.a = 1 - smooth(0.6, 0.95, t);
-        } else {
-          const e = easeInOut(seg(t, lifting ? 0.02 : 0.05, lifting ? 0.55 : 0.7));
-          n.y += 1.5 * e; n.z += 0.5 * e; n.a = 1 - smooth(0.35, 1, e); n.s = 1 - 0.3 * e;
-        }
-      }
-      const fA = focA === id, fB = focB === id;
-      n.ringC = Math.max(n.ringC, fA && fB ? 1 : fB ? smooth(0, 0.3, t) : fA ? 1 - smooth(0, 0.3, t) : 0);
-      P.nodes.set(id, n);
-    }
-    for (const k of keys) {
-      if (rot && rot.skip(k)) continue;
-      const la = LA.get(k), lb = LB.get(k), L = lb || la;
-      let ext;
-      if (la && lb) ext = 1;
-      else if (lb) ext = lifting ? smooth(0.74, 0.98, t) : smooth(0.5, 0.95, t);
-      else if (kind === 'clear') ext = 1;
-      else ext = lifting ? 1 - smooth(0, 0.2, t) : 1 - smooth(0.05, 0.45, t);
-      if (rot) { const e2 = rot.linkExt(k, t); if (e2 != null) ext = e2; }
-      if (kind === 'place' && lb && L.c === st.placed) ext = 1;
-      if (ext <= 0.001) continue;
-      const inA = pathA.includes(L.c), inB = pathB.includes(L.c);
-      const cob = inA && inB ? 1 : inB ? smooth(0.15, 0.85, t) : inA ? 1 - smooth(0.05, 0.6, t) : 0;
-      P.links.push({ p: L.p, c: L.c, side: L.side, ext, cob });
-    }
-
-    // the value in hand
-    if (vVal != null) {
-      if (kind === 'start' && vPB) {
-        P.visitor = { x: vPB.x, y: vPB.y + 5 * (1 - easeOut(seg(t, 0, 0.85))), z: 0, a: smooth(0, 0.35, t), v: vVal, s: 1 };
-      } else if (kind === 'descend' && dpts) {
-        P.visitor = { ...pathPoint(dpts, easeInOut(t)), a: 1, v: vVal, s: 1 };
-        if (st.visitor.hook) P.hooks.push({ p: st.visitor.hook.p, side: st.visitor.hook.side, a: smooth(0, 0.3, t) });
-      } else if (kind === 'missing') {
-        let p;
-        if (dpts) { p = pathPoint(dpts, easeInOut(seg(t, 0, 0.45))); P.hooks.push({ p: st.visitor.hook.p, side: st.visitor.hook.side, a: 1 - smooth(0.85, 1, t) }); }
-        else p = { ...(vPA || vPB) };
-        const f = seg(t, 0.5, 1);
-        p.y -= 2.4 * f * f;
-        P.visitor = { ...p, a: 1 - smooth(0.55, 0.95, t), v: vVal, s: 1 };
-        P.callout = { text: 'not here', x: p.x, y: p.y, side: 'r', off: 0.6, tone: 'ink', a: smooth(0.4, 0.55, t) * (1 - smooth(0.8, 1, t)) };
-      } else if (kind === 'found' && vPA && vPB) {
-        const e = easeInOut(seg(t, 0, 0.7));
-        P.visitor = { x: lerp(vPA.x, vPB.x, e), y: lerp(vPA.y, vPB.y, e), z: 0.15 * e, a: 1 - smooth(0.45, 0.85, t), v: vVal, s: 1 - 0.3 * e };
-      } else if (kind === 'duplicate' && vPA) {
-        const k = 1 - smooth(0.6, 1, t);
-        P.visitor = { x: vPA.x + 0.14 * Math.sin(t * Math.PI * 7) * (1 - t), y: vPA.y, z: 0, a: k, v: vVal, s: 1 };
-        P.callout = { text: 'already here', x: vPA.x, y: vPA.y, side: 'r', off: 0.62, tone: 'ink', a: smooth(0.1, 0.3, t) * k };
-      } else if (kind === 'place') {
-        // the value in hand becomes the new disc
-      } else if (vPA && vPB) {
-        const e = easeInOut(t);
-        P.visitor = { x: lerp(vPA.x, vPB.x, e), y: lerp(vPA.y, vPB.y, e), z: 0, a: 1, v: vVal, s: 1 };
-      } else if (vPA) {
-        P.visitor = { ...vPA, a: 1 - smooth(0, 0.4, t), v: vVal, s: 1 };
-      } else if (vPB) {
-        P.visitor = { ...vPB, a: smooth(0, 0.4, t), v: vVal, s: 1 };
-      }
-    }
-
-    // step-specific details
-    if (kind === 'compare' && vPB) {
-      const c = st.cmp;
-      const txt = c.side === 'l' ? `← ${c.a} < ${c.b}` : `${c.a} > ${c.b} →`;
-      P.callout = { text: txt, x: vPB.x, y: vPB.y, side: c.side === 'l' ? 'l' : 'r', off: VR + 0.2, tone: 'ink', a: smooth(0.05, 0.3, t) };
-    } else if (kind === 'update') {
-      const n = P.nodes.get(st.focus);
-      if (n) {
-        n.s *= 1 + 0.07 * Math.sin(Math.PI * seg(t, 0, 0.5));
-        P.callout = { text: `height ${st.co.h} · balance ${fmtBf(st.co.bf)}`, x: n.x, y: n.y, side: 'r', off: R + 0.55, tone: Math.abs(st.co.bf) >= 2 ? 'red' : 'ink', a: smooth(0.2, 0.4, t) };
-      }
-    } else if (kind === 'imbalance') {
-      const z = P.nodes.get(st.focus), c = P.nodes.get(st.child);
-      if (c) c.ringC = Math.max(c.ringC, smooth(0.1, 0.35, t));
-      let pa = st.focus, pb = st.child, dir = st.kase === 'LL' ? -1 : 1;
-      if (st.grand != null) { const g = P.nodes.get(st.grand); if (g) g.ringC = Math.max(g.ringC, smooth(0.25, 0.5, t)); pa = st.child; pb = st.grand; dir = st.kase === 'LR' ? 1 : -1; }
-      const A1 = P.nodes.get(pa), B1 = P.nodes.get(pb);
-      if (A1 && B1) { const M = { x: (A1.x + B1.x) / 2, y: (A1.y + B1.y) / 2 }; const vx = B1.x - M.x, vy = B1.y - M.y; P.arc = { x: M.x, y: M.y, r: Math.hypot(vx, vy) + 0.62, ang: Math.atan2(vy, vx), dir, a: 0.45 * smooth(0.3, 0.65, t) }; }
-      if (z) P.callout = { text: `${st.kase} case`, x: z.x, y: z.y, side: st.kase[0] === 'L' ? 'r' : 'l', off: R + 0.55, tone: 'red', a: smooth(0.1, 0.3, t) };
-    } else if (kind === 'rotate') {
-      rot.extras(P, t, slotCob, arcFrom);
-    } else if (kind === 'found') {
-      const n = P.nodes.get(st.focus);
-      if (n) {
-        n.s *= 1 + 0.1 * Math.sin(Math.PI * seg(t, 0.45, 0.9));
-        P.callout = st.cmpN ? { text: `found in ${plural(st.cmpN, 'step')}`, x: n.x, y: n.y, side: 'r', off: R + 0.55, tone: 'cobalt', a: smooth(0.5, 0.7, t) } : null;
-      }
-    } else if (kind === 'place') {
-      const n = P.nodes.get(st.placed);
-      if (n) P.callout = { text: 'new leaf · height 1', x: n.x, y: n.y, side: 'r', off: R + 0.5, tone: 'ink', a: smooth(0.65, 0.85, t) };
-    } else if (kind === 'replace') {
-      const n = P.nodes.get(st.succ);
-      if (n) { n.z += 0.9 * Math.sin(Math.PI * seg(t, 0.2, 0.78)); n.ringC = 1; }
-    }
-    if (lifting) {
-      const a = smooth(0, 0.12, t) * (1 - smooth(0.9, 1, t));
-      if (a > 0.001) for (const id of rehung) { const n = P.nodes.get(id); P.clips.push({ x: n.x, y: n.y + (R + 0.1) * n.s + 0.5, z: n.z, c: id, a, follow: true }); }
-    } else if (kind === 'succ') {
-      const n = P.nodes.get(st.focus);
-      if (n && B.n[st.focus].l == null) P.callout = { text: 'successor', x: n.x, y: n.y, side: 'l', off: R + 0.5, tone: 'cobalt', a: smooth(0.4, 0.7, t) };
-    }
-    return P;
-  }
-  return { dur: DUR[kind] || 1, pose };
-}
-
-// A plain morph between any two poses: used to jump along the timeline, rewind, or catch up.
-function morph(P0, P1, dur = 0.55) {
-  const ids = new Set([...P0.nodes.keys(), ...P1.nodes.keys()]);
-  const k0 = new Map(P0.links.map(l => [lkey(l), l])), k1 = new Map(P1.links.map(l => [lkey(l), l]));
-  const keys = new Set([...k0.keys(), ...k1.keys()]);
-  return {
-    dur, pose(t) {
-      const e = easeInOut(t), P = emptyPose();
-      for (const id of ids) {
-        const a = P0.nodes.get(id), b = P1.nodes.get(id);
-        let n;
-        if (a && b) {
-          n = { ...b, x: lerp(a.x, b.x, e), y: lerp(a.y, b.y, e), z: lerp(a.z, b.z, e), a: lerp(a.a, b.a, e), s: lerp(a.s, b.s, e), bf: t < 0.5 ? a.bf : b.bf, ringC: lerp(a.ringC, b.ringC, e) };
-          for (const c of ['fr', 'fg', 'fb', 'nr', 'ng', 'nb']) n[c] = lerp(a[c], b[c], e);
-        } else if (b) n = { ...b, a: b.a * e, y: b.y + 1.2 * (1 - e) };
-        else n = { ...a, a: a.a * (1 - e), y: a.y + 1.2 * e };
-        P.nodes.set(id, n);
-      }
-      for (const k of keys) {
-        const a = k0.get(k), b = k1.get(k);
-        if (a && b) P.links.push({ ...b, ext: lerp(a.ext, b.ext, e), cob: lerp(a.cob, b.cob, e) });
-        else if (b) P.links.push({ ...b, ext: b.ext * smooth(0.4, 1, t) });
-        else P.links.push({ ...a, ext: a.ext * (1 - smooth(0, 0.6, t)) });
-      }
-      const va = P0.visitor, vb = P1.visitor;
-      if (va && vb) P.visitor = { ...vb, x: lerp(va.x, vb.x, e), y: lerp(va.y, vb.y, e), z: lerp(va.z, vb.z, e), a: lerp(va.a, vb.a, e) };
-      else if (va) P.visitor = { ...va, a: va.a * (1 - e) };
-      else if (vb) P.visitor = { ...vb, a: vb.a * e };
-      if (P1.slot && t > 0.5) P.slot = P1.slot; else if (P0.slot && t <= 0.5) P.slot = P0.slot;
-      if (P0.lever) P.lever = { ...P0.lever, ext: P0.lever.ext * (1 - e) };
-      for (const c of P0.clips) P.clips.push({ ...c, a: c.a * (1 - e) });
-      if (P0.arc) P.arc = { ...P0.arc, a: P0.arc.a * (1 - e) };
-      return P;
-    },
-  };
-}
-// Opening: the mobile is lowered from the ceiling, top levels first.
-function lowering(P1) {
-  return {
-    dur: 2.2, pose(t) {
-      const P = emptyPose();
-      for (const [id, b] of P1.nodes) {
-        const depth = Math.round(-b.y / ROW);
-        const e = easeBack(seg(t, 0.06 * depth, 0.06 * depth + 0.72));
-        P.nodes.set(id, { ...b, y: b.y + 9 * (1 - e), a: smooth(0, 0.15, t) });
-      }
-      P.links = P1.links.map(l => ({ ...l }));
-      return P;
-    },
-  };
-}
-
-/* =====================================================================
-   6. Scene: the shared stage, plus a plaster wall behind the mobile
-   ===================================================================== */
-const canvas = document.getElementById('stage');
-const stage = createStage({ canvas });
-const { renderer, scene, camera, controls, key, pool, KEY_DIR } = stage;
-const wall = new THREE.Mesh(new THREE.PlaneGeometry(420, 280), new THREE.MeshStandardMaterial({ map: plasterTexture(), roughness: 0.96, metalness: 0, envMapIntensity: 0.3 }));
-wall.position.set(0, -20, WALL_Z);
-wall.receiveShadow = true;
-scene.add(wall);
-
-/* ---------- shared geometry and materials ---------- */
-const discGeo = new THREE.CylinderGeometry(R, R, 0.07, 48, 1); discGeo.rotateX(Math.PI / 2);
-const faceGeo = new THREE.PlaneGeometry(2 * R, 2 * R);
-const badgeGeo = new THREE.PlaneGeometry(0.46, 0.28);
-const ringCGeo = new THREE.RingGeometry(R + 0.08, R + 0.14, 64);
-const ringRGeo = new THREE.RingGeometry(R + 0.17, R + 0.23, 64);
-const ringSGeo = new THREE.RingGeometry(R + 0.29, R + 0.32, 64);
-
-const rodMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.38, metalness: 0.35 });
-const MAXR = 900, MAXJ = 500, MAXH = 200, MAXL = 90;
-const rods = new THREE.InstancedMesh(new THREE.CylinderGeometry(1, 1, 1, 7, 1), rodMat, MAXR);
-const joints = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 10, 8), rodMat, MAXJ);
-const curlGeo = new THREE.TorusGeometry(0.06, 0.013, 6, 14, Math.PI); curlGeo.rotateZ(Math.PI);
-const hooks = new THREE.InstancedMesh(curlGeo, rodMat, MAXH);
-const loops = new THREE.InstancedMesh(new THREE.TorusGeometry(0.05, 0.012, 6, 16), rodMat, MAXL);
-for (const m of [rods, joints, hooks, loops]) {
-  m.castShadow = true; m.frustumCulled = false; m.count = 0;
-  m.setColorAt(0, C_INK); m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-  scene.add(m);
-}
-
-// numeral and badge textures
-const numTex = new Map();
-function numeralTexture(v) {
-  let t = numTex.get(v);
-  if (t) return t;
-  const S = 256, c = document.createElement('canvas'); c.width = c.height = S;
-  const g = c.getContext('2d');
-  g.strokeStyle = '#fff';
-  drawNumerals(g, v, S / 2, S / 2, numH(v) * S, 14);
-  t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8;
-  numTex.set(v, t);
-  return t;
-}
-const badgeTex = {};
-for (const bf of [-2, -1, 0, 1, 2]) {
-  const W = 184, H = 112, c = document.createElement('canvas'); c.width = W; c.height = H;
-  const g = c.getContext('2d'), a = Math.abs(bf);
-  const r = H / 2 - 6;
-  g.beginPath(); g.moveTo(6 + r, 6); g.lineTo(W - 6 - r, 6); g.arc(W - 6 - r, H / 2, r, -Math.PI / 2, Math.PI / 2); g.lineTo(6 + r, H - 6); g.arc(6 + r, H / 2, r, Math.PI / 2, Math.PI * 1.5); g.closePath();
-  g.fillStyle = a >= 2 ? '#D1361E' : '#F8F5EE'; g.fill();
-  g.lineWidth = a === 1 ? 7 : 5; g.strokeStyle = a >= 2 ? '#D1361E' : a === 1 ? '#C48A0A' : 'rgba(27,26,23,0.4)'; g.stroke();
-  g.strokeStyle = a >= 2 ? '#FFFFFF' : '#1B1A17';
-  drawNumerals(g, bf > 0 ? `+${bf}` : bf < 0 ? `-${-bf}` : '0', W / 2, H / 2, 58, 15);
-  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
-  badgeTex[bf] = t;
-}
-
-/* ---------- a disc on the wall ---------- */
-const visuals = new Map();
-const pickables = [];
-function makeDisc(v, radiusScale = 1) {
-  const group = new THREE.Group();
-  const discMat = new THREE.MeshStandardMaterial({ color: HEX.ink, roughness: 0.42, metalness: 0.05, envMapIntensity: 0.55 });
-  const disc = new THREE.Mesh(discGeo, discMat); disc.castShadow = true;
-  const faceMat = new THREE.MeshBasicMaterial({ map: numeralTexture(v), transparent: true, depthWrite: false, toneMapped: false });
-  const face = new THREE.Mesh(faceGeo, faceMat); face.position.z = 0.04; face.renderOrder = 2;
-  group.add(disc, face);
-  group.scale.setScalar(radiusScale);
-  scene.add(group);
-  return { group, disc, discMat, face, faceMat, v };
-}
-function getVis(id, v) {
-  let vis = visuals.get(id);
-  if (vis) return vis;
-  vis = makeDisc(v);
-  vis.id = id;
-  vis.disc.userData.id = id;
-  pickables.push(vis.disc);
-  const ringMat = hex => new THREE.MeshBasicMaterial({ color: hex, transparent: true, opacity: 0, depthWrite: false, toneMapped: false, side: THREE.DoubleSide });
-  vis.ringC = new THREE.Mesh(ringCGeo, ringMat(HEX.cobalt));
-  vis.ringR = new THREE.Mesh(ringRGeo, ringMat(HEX.red));
-  vis.pulse = new THREE.Mesh(ringRGeo, ringMat(HEX.red));
-  vis.ringS = new THREE.Mesh(ringSGeo, ringMat(HEX.ink));
-  vis.badgeMat = new THREE.MeshBasicMaterial({ map: badgeTex[0], transparent: true, depthWrite: false, toneMapped: false });
-  vis.badge = new THREE.Mesh(badgeGeo, vis.badgeMat); vis.badge.position.set(0.44, -0.44, 0.06); vis.badge.renderOrder = 3;
-  for (const m of [vis.ringC, vis.ringR, vis.pulse, vis.ringS]) { m.visible = false; m.renderOrder = 1; vis.group.add(m); }
-  vis.group.add(vis.badge);
-  Object.assign(vis, { tilt: 0, tiltV: 0, sw: 0, swV: 0, x1: null, x2: null, pres: 0, longArm: STUB, hidden: 0, bfShown: 0, phase: Math.random() * 6.28 });
-  visuals.set(id, vis);
-  return vis;
-}
-function dropVis(id) {
-  const vis = visuals.get(id);
-  if (!vis) return;
-  scene.remove(vis.group);
-  vis.discMat.dispose(); vis.faceMat.dispose(); vis.badgeMat.dispose();
-  for (const m of [vis.ringC, vis.ringR, vis.pulse, vis.ringS]) m.material.dispose();
-  const k = pickables.indexOf(vis.disc); if (k >= 0) pickables.splice(k, 1);
-  visuals.delete(id);
-  if (numTex.size > 160) {
-    const keep = new Set([visitor.v]);
-    for (const w of visuals.values()) keep.add(w.v);
-    for (const [v, t] of numTex) if (!keep.has(v)) { t.dispose(); numTex.delete(v); }
-  }
-}
-// the value in hand
-const visitor = makeDisc(0, VR / R);
-visitor.discMat.color.setHex(HEX.cobalt);
-visitor.faceMat.color.setHex(0xffffff);
-visitor.group.visible = false;
-
-/* ---------- lever, clip and rotation arrows ---------- */
-const cobaltBasic = new THREE.MeshBasicMaterial({ color: HEX.cobalt, transparent: true, depthWrite: false, toneMapped: false });
-const MAXC = 16;
-const clipMeshes = new THREE.InstancedMesh(new THREE.BoxGeometry(0.15, 0.25, 0.09), new THREE.MeshStandardMaterial({ color: HEX.cobalt, roughness: 0.4, metalness: 0.2 }), MAXC);
-clipMeshes.count = 0; clipMeshes.castShadow = true; clipMeshes.frustumCulled = false; scene.add(clipMeshes);
-const arcGroup = new THREE.Group(); arcGroup.visible = false; scene.add(arcGroup);
-let arcBuiltFor = -1;
-function buildArcs(radius) {
-  const rr = Math.round(radius * 20) / 20;
-  if (rr === arcBuiltFor) return;
-  arcBuiltFor = rr;
-  for (const c of [...arcGroup.children]) { arcGroup.remove(c); c.geometry.dispose(); }
-  const SPAN = 52 * DEG, DASHES = 4;
-  for (const base of [0, Math.PI]) {
-    for (let i = 0; i < DASHES; i++) {
-      const a0 = base + (i / DASHES) * SPAN, a1 = base + ((i + 0.62) / DASHES) * SPAN;
-      const pts = []; for (let k = 0; k <= 6; k++) { const a = lerp(a0, a1, k / 6); pts.push(new THREE.Vector3(Math.cos(a) * rr, Math.sin(a) * rr, 0)); }
-      arcGroup.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 6, 0.035, 6, false), cobaltBasic));
-    }
-    const ae = base + SPAN + 4 * DEG;
-    const cone = new THREE.Mesh(new THREE.ConeGeometry(0.11, 0.3, 12), cobaltBasic);
-    cone.position.set(Math.cos(ae) * rr, Math.sin(ae) * rr, 0);
-    cone.rotation.z = ae; // cone points along +y; tangent of a CCW arc at angle a is a + 90deg
-    arcGroup.add(cone);
-  }
-}
-
-/* =====================================================================
-   7. Drawing a pose
-   ===================================================================== */
-const _m = new THREE.Matrix4(), _q = new THREE.Quaternion(), _s = new THREE.Vector3(), _p = new THREE.Vector3(), _d = new THREE.Vector3(), _c = new THREE.Color();
-const UP = new THREE.Vector3(0, 1, 0);
-let nR = 0, nJ = 0, nH = 0, nL = 0;
-function addRod(ax, ay, az, bx, by, bz, r, col) {
-  if (nR >= MAXR) return;
-  _d.set(bx - ax, by - ay, bz - az);
-  const len = _d.length();
-  if (len < 1e-4) return;
-  _d.divideScalar(len); _q.setFromUnitVectors(UP, _d);
-  _p.set((ax + bx) / 2, (ay + by) / 2, (az + bz) / 2); _s.set(r, len, r);
-  _m.compose(_p, _q, _s); rods.setMatrixAt(nR, _m); rods.setColorAt(nR, col); nR++;
-}
-function addJoint(x, y, z, r, col) {
-  if (nJ >= MAXJ) return;
-  _q.identity(); _p.set(x, y, z); _s.set(r, r, r); _m.compose(_p, _q, _s); joints.setMatrixAt(nJ, _m); joints.setColorAt(nJ, col); nJ++;
-}
-function addHook(x, y, z, side, k) {
-  if (nH >= MAXH || k < 0.02) return;
-  addRod(x, y, z, x, y - 0.11 * k, z, 0.013, C_INK);
-  _q.setFromAxisAngle(UP, side === 'l' ? Math.PI : 0);
-  _p.set(x + (side === 'l' ? -0.06 : 0.06) * k, y - 0.11 * k, z); _s.set(k, k, k);
-  _m.compose(_p, _q, _s); hooks.setMatrixAt(nH, _m); hooks.setColorAt(nH, C_INK); nH++;
-}
-function addLoop(x, y, z, yaw, k) {
-  if (nL >= MAXL) return;
-  _q.setFromAxisAngle(UP, yaw); _p.set(x, y, z); _s.set(k, k, k);
-  _m.compose(_p, _q, _s); loops.setMatrixAt(nL, _m); loops.setColorAt(nL, C_INK); nL++;
-}
-const cobMix = cob => (cob <= 0 ? C_INK : _c.copy(C_INK).lerp(C_COB, cob));
-
-const ui = { badges: true, selected: null };
-let clock = 0, animDt = 0;
-
-function tiltFor(bf, longArm) {
-  const a = Math.min(2, Math.abs(bf));
-  if (!a) return 0;
-  const maxDeg = a >= 2 ? 22 : 10, drop = a >= 2 ? 0.5 : 0.2;
-  return Math.sign(bf) * Math.min(maxDeg * DEG, Math.atan(drop / longArm));
-}
-
-function applyPose(P, dt) {
-  nR = nJ = nH = nL = 0;
-  const dtS = dt * player.speed;
-  const subN = Math.max(1, Math.ceil(dtS / (1 / 120))), subDt = dtS / subN;
-  const seen = new Set();
-  // discs
-  for (const [id, n] of P.nodes) {
-    const vis = getVis(id, n.v);
-    seen.add(id); vis.hidden = 0;
-    // pendulum: a disc trails a little when its support moves
-    if (vis.x1 == null || dtS <= 0) { vis.x1 = vis.x2 = n.x; }
-    else if (!REDUCED) {
-      const drive = 0.05 * Math.max(-250, Math.min(250, (n.x - 2 * vis.x1 + vis.x2) / (dtS * dtS)));
-      vis.x2 = vis.x1; vis.x1 = n.x;
-      for (let k = 0; k < subN; k++) {
-        vis.swV += (-38 * vis.sw - 5.5 * vis.swV - drive) * subDt; vis.sw += vis.swV * subDt;
-      }
-      vis.sw = Math.max(-0.28, Math.min(0.28, vis.sw));
-    }
-    const x = n.x + vis.sw;
-    vis.group.visible = n.a > 0.01;
-    vis.group.position.set(x, n.y, n.z);
-    vis.group.rotation.set(0, Math.atan2(camera.position.x - x, camera.position.z - n.z), 0);
-    vis.group.scale.setScalar(n.s);
-    vis.discMat.color.setRGB(n.fr, n.fg, n.fb);
-    vis.faceMat.color.setRGB(n.nr, n.ng, n.nb);
-    const fading = n.a < 0.999;
-    if (vis.discMat.transparent !== fading) { vis.discMat.transparent = fading; vis.discMat.depthWrite = !fading; vis.discMat.needsUpdate = true; }
-    vis.discMat.opacity = n.a;
-    vis.faceMat.opacity = n.a;
-    vis.disc.castShadow = n.a > 0.5;
-    const b = Math.max(-2, Math.min(2, n.bf));
-    if (vis.bfShown !== b || vis.badgeMat.map !== badgeTex[b]) { vis.badgeMat.map = badgeTex[b]; vis.bfShown = b; }
-    vis.badge.visible = ui.badges; vis.badgeMat.opacity = n.a;
-    vis.ringC.visible = n.ringC > 0.01; vis.ringC.material.opacity = n.ringC * n.a;
-    const alarm = Math.abs(n.bf) >= 2 ? n.a : 0;
-    vis.ringR.visible = vis.pulse.visible = alarm > 0.01;
-    if (alarm > 0.01) {
-      vis.ringR.material.opacity = alarm;
-      const f = (clock * 0.9 + vis.phase) % 1;
-      vis.pulse.scale.setScalar(1 + (REDUCED ? 0 : 0.35 * f)); vis.pulse.material.opacity = alarm * 0.55 * (1 - f);
-    }
-    const sel = ui.selected === id ? n.a : 0;
-    vis.ringS.visible = sel > 0.01; vis.ringS.material.opacity = sel;
-    vis.rx = x;
-    addLoop(x, n.y + (R + 0.055) * n.s, n.z, vis.group.rotation.y, n.s * (n.a > 0.3 ? 1 : n.a / 0.3));
-  }
-  for (const [id, vis] of visuals) {
-    if (seen.has(id)) continue;
-    vis.group.visible = false; vis.x1 = null; vis.pres = 0;
-    vis.hidden += dt;
-    if (vis.hidden > 4 && !engine.n[id]) dropVis(id);
-  }
-
-  // arms and wires
-  const byP = new Map();
-  const want = (p) => { let a = byP.get(p); if (!a) byP.set(p, a = []); return a; };
-  for (const L of P.links) if (L.p != null) want(L.p).push(L);
-  if (P.slot && P.slot.p != null) want(P.slot.p).push({ p: P.slot.p, side: P.slot.side, ext: 1, cob: P.slot.cob, slot: P.slot });
-  const hookReq = new Map();
-  for (const h of P.hooks) hookReq.set(`${h.p}${h.side}`, h.a);
-
-  const topOf = (L) => {
-    if (L.slot) return { bx: L.slot.x, x: L.slot.x, y: L.slot.y, z: L.slot.z };
-    const c = P.nodes.get(L.c); if (!c) return null;
-    const cv = visuals.get(L.c);
-    return { bx: c.x, x: cv ? cv.rx : c.x, y: c.y + (R + 0.1) * c.s, z: c.z };
-  };
-  // ceiling wires
-  for (const L of P.links) {
-    if (L.p != null) continue;
-    const tp = topOf(L); if (!tp) continue;
-    const by = lerp(CEIL, tp.y, L.ext);
-    addRod(tp.bx, CEIL, tp.z, lerp(tp.bx, tp.x, L.ext), by, tp.z, 0.016, cobMix(L.cob));
-  }
-  if (P.slot && P.slot.p == null) addRod(P.slot.x, CEIL, 0, P.slot.x, P.slot.y, 0, 0.016, cobMix(P.slot.cob));
-
-  for (const [id, n] of P.nodes) {
-    const vis = visuals.get(id);
-    const links = byP.get(id) || [];
-    let presT = 0;
-    for (const L of links) presT = Math.max(presT, L.ext);
-    for (const s of ['l', 'r']) { const h = hookReq.get(`${id}${s}`); if (h) presT = Math.max(presT, h); }
-    vis.pres += (presT - vis.pres) * (1 - Math.exp(-dtS * 12));
-    if (presT >= 0.999 && vis.pres > 0.98) vis.pres = 1;
-    // bar tilt: a damped spring toward the balance factor
-    let target = tiltFor(n.bf, vis.longArm);
-    if (!REDUCED) target += 0.01 * Math.sin(clock * 0.8 + vis.phase);
-    for (let k = 0; k < subN; k++) {
-      vis.tiltV += (70 * (target - vis.tilt) - 6.5 * vis.tiltV) * subDt; vis.tilt += vis.tiltV * subDt;
-    }
-    vis.tilt = Math.max(-0.6, Math.min(0.6, vis.tilt));
-    if (vis.pres < 0.01 || n.a < 0.02) continue;
-    const k = vis.pres * Math.min(1, n.a * 2);
-    const rx = vis.rx, pz = n.z;
-    const py = n.y - (R + STEM * k) * n.s;
-    const tan = Math.tan(vis.tilt);
-    addRod(rx, n.y - R * n.s, pz, rx, py, pz, 0.02, C_INK);
-    addJoint(rx, py, pz, 0.05 * k, C_INK);
-    let longArm = STUB;
-    for (const side of ['l', 'r']) {
-      let armMax = 0;
-      for (const L of links) {
-        if (L.side !== side) continue;
-        const tp = topOf(L); if (!tp) continue;
-        const armE = clamp01(L.ext * 2), wireE = clamp01(L.ext * 2 - 1);
-        const stubX = rx + (side === 'l' ? -STUB : STUB) * k;
-        const ex = lerp(stubX, tp.bx, armE), ey = py + (ex - rx) * tan;
-        const col = cobMix(L.cob);
-        addRod(rx, py, pz, ex, ey, pz, 0.026, col);
-        addJoint(ex, ey, pz, 0.034, col);
-        if (wireE > 0.001) addRod(ex, ey, pz, lerp(ex, tp.x, wireE), lerp(ey, tp.y, wireE), lerp(pz, tp.z, wireE), 0.016, col);
-        longArm = Math.max(longArm, Math.abs(tp.bx - rx));
-        armMax = Math.max(armMax, armE);
-      }
-      if (armMax < 0.06) {
-        const sx = rx + (side === 'l' ? -STUB : STUB) * k, sy = py + (sx - rx) * tan;
-        if (armMax === 0) addRod(rx, py, pz, sx, sy, pz, 0.026, C_INK);
-        addHook(sx, sy, pz, side, k);
-      }
-    }
-    vis.longArm = longArm;
-  }
-
-  // the lever: two nodes locked together while they swing
-  if (P.lever) {
-    const a = visuals.get(P.lever.a), b = visuals.get(P.lever.b), na = P.nodes.get(P.lever.a), nb = P.nodes.get(P.lever.b);
-    if (a && b && na && nb) {
-      const mx = (a.rx + b.rx) / 2, my = (na.y + nb.y) / 2, e = P.lever.ext;
-      addRod(lerp(mx, a.rx, e), lerp(my, na.y, e), -0.1, lerp(mx, b.rx, e), lerp(my, nb.y, e), -0.1, 0.05 * Math.min(1, e * 3), C_COB);
-      addJoint(mx, my, -0.1, 0.075 * Math.min(1, e * 3), C_COB);
-    }
-  }
-  // clips hold a subtree in place while it changes parent
-  let nC = 0;
-  for (const cl of P.clips) {
-    if (nC >= MAXC) break;
-    const c = P.nodes.get(cl.c), cv = visuals.get(cl.c);
-    if (!c || !cv) continue;
-    const x = cl.follow ? cv.rx : cl.x;
-    _q.identity(); _p.set(x, cl.y, cl.z); _s.setScalar(Math.max(0.01, cl.a)); _m.compose(_p, _q, _s);
-    clipMeshes.setMatrixAt(nC++, _m);
-    addRod(x, cl.y, cl.z, cv.rx, c.y + (R + 0.1) * c.s, c.z, 0.016, C_COB);
-  }
-  clipMeshes.count = nC; clipMeshes.instanceMatrix.needsUpdate = true;
-  // rotation arrows
-  if (P.arc) {
-    buildArcs(P.arc.r);
-    arcGroup.visible = true;
-    arcGroup.position.set(P.arc.x, P.arc.y, 0.15);
-    arcGroup.scale.set(1, P.arc.dir, 1);
-    arcGroup.rotation.set(0, 0, P.arc.ang + 14 * DEG * P.arc.dir);
-    cobaltBasic.opacity = P.arc.a;
-  } else arcGroup.visible = false;
-  // the value in hand
-  const V = P.visitor;
-  if (V && V.a > 0.01) {
-    if (visitor.v !== V.v) { visitor.v = V.v; visitor.faceMat.map = numeralTexture(V.v); }
-    visitor.group.visible = true;
-    visitor.group.position.set(V.x, V.y, V.z + 0.05);
-    visitor.group.rotation.set(0, Math.atan2(camera.position.x - V.x, camera.position.z - V.z), 0);
-    visitor.group.scale.setScalar((VR / R) * V.s);
-    const fading = V.a < 0.999;
-    if (visitor.discMat.transparent !== fading) { visitor.discMat.transparent = fading; visitor.discMat.needsUpdate = true; }
-    visitor.discMat.opacity = V.a; visitor.faceMat.opacity = V.a;
-    visitor.disc.castShadow = V.a > 0.5;
-    addLoop(V.x, V.y + VR * V.s + 0.05, V.z + 0.05, visitor.group.rotation.y, V.s * 0.8);
-  } else visitor.group.visible = false;
-
-  for (const m of [rods, joints, hooks, loops]) {
-    m.instanceMatrix.needsUpdate = true;
-    if (m.instanceColor) m.instanceColor.needsUpdate = true;
-  }
-  rods.count = nR; joints.count = nJ; hooks.count = nH; loops.count = nL;
-}
-
-
-/* =====================================================================
-   8. Camera: keep the piece framed inside the free part of the screen
-   ===================================================================== */
-const dock = document.getElementById('dock'), masthead = document.getElementById('masthead');
-let bar = null;
-const framer = createFramer({ camera, controls, home: { theta: -0.16, phi: 1.49 }, frameButton: document.getElementById('bFrame') });
-function measureFree() {
-  const W = innerWidth, H = innerHeight;
-  if (isPhone()) {
-    const ins = document.getElementById('inspector');
-    const top = ins.hidden ? masthead.getBoundingClientRect().bottom + 10 : ins.getBoundingClientRect().bottom + 18;
-    const bot = dock.getBoundingClientRect().top - 8;
-    framer.free = { l: 12, r: W - 12, t: top, b: Math.max(top + 120, bot) };
-  } else {
-    const d = dock.getBoundingClientRect(), b = bar.getBoundingClientRect();
-    const ins = document.getElementById('inspector');
-    const r = ins.hidden ? W - 24 : ins.getBoundingClientRect().left - 20;
-    framer.free = { l: d.right + 24, r: Math.max(d.right + 300, r), t: 80, b: Math.max(200, b.top - 16) };
-  }
-}
-// the part of the wall the mobile and the value in hand occupy
-function frameBox(P) {
-  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-  for (const n of P.nodes.values()) {
-    if (n.a < 0.05) continue;
-    minX = Math.min(minX, n.x - R - 0.55); maxX = Math.max(maxX, n.x + R + 0.55);
-    minY = Math.min(minY, n.y - R - 0.5); maxY = Math.max(maxY, n.y + R + 0.35);
-  }
-  if (P.visitor && P.visitor.a > 0.05) { minY = Math.min(minY, P.visitor.y - VR - 0.3); maxY = Math.max(maxY, P.visitor.y + VR + 0.3); }
-  if (minX === Infinity) { minX = -2; maxX = 2; minY = -2; maxY = 1.5; }
-  return { cx: (minX + maxX) / 2, cy: (minY + maxY) / 2, hw: Math.max(3.4, (maxX - minX) / 2), hh: Math.max(2.8, (maxY - minY) / 2) };
-}
-const manual = () => framer.manual();
-const resetView = () => framer.reset();
-
-// lights follow the piece
-function fitLights(P) {
-  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-  for (const n of P.nodes.values()) { minX = Math.min(minX, n.x); maxX = Math.max(maxX, n.x); minY = Math.min(minY, n.y); maxY = Math.max(maxY, n.y); }
-  if (minX === Infinity) { minX = -2; maxX = 2; minY = -2; maxY = 1; }
-  const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
-  const half = Math.max(maxX - minX, maxY - minY) / 2 + 5;
-  key.target.position.set(cx, cy, WALL_Z);
-  key.position.copy(key.target.position).addScaledVector(KEY_DIR, 40);
-  const sc = key.shadow.camera;
-  sc.left = -half; sc.right = half; sc.top = half; sc.bottom = -half; sc.near = 5; sc.far = 80;
-  sc.updateProjectionMatrix();
-  pool.position.set(cx - 3, cy + 5, 38);
-  pool.target.position.set(cx + 0.8, cy - 1, WALL_Z);
-  pool.angle = Math.min(1.2, Math.atan((half + 3) / 40));
-}
-
-/* =====================================================================
-   9. Sound: what each AVL step sounds like
-   ===================================================================== */
-Sound.step = function (st, dur) {
-  if (!this.on || !this.ctx) return;
-  const v = st.visitor ? st.visitor.v : null, S = dur / player.speed;
-  switch (st.kind) {
-    case 'start': this.tink(this.pitch(v), 0.25, 0, 0.6); break;
-    case 'compare': this.tink(this.pitch(st.cmp.b), 0.4); break;
-    case 'descend': this.hiss(0.35, 2400, 900, 0.035); break;
-    case 'place': this.tink(this.pitch(st.snap.n[st.placed].v) / 2, 0.45, 0.4 * S, 0.5); this.thud(0.4 * S, 140, 0.18); break;
-    case 'update': if (Math.abs(st.co.bf) >= 2) this.wobble(); else this.tink(1320, 0.07, 0, 0.25); break;
-    case 'imbalance': this.wobble(); break;
-    case 'rotate': this.hiss(0.6 * S, 380, 1300, 0.09, 0.2 * S); this.thud(0.82 * S, 150, 0.2); this.tink(523, 0.22, 0.86 * S); this.tink(659, 0.2, 0.92 * S); break;
-    case 'found': this.tink(988, 0.35); this.tink(1319, 0.3, 0.09); break;
-    case 'missing': case 'duplicate': this.thud(0.45 * S, 100, 0.25); break;
-    case 'remove': case 'replace': case 'clear': this.hiss(0.5, 600, 2400, 0.05); break;
-    case 'done': this.chime(); break;
-  }
-};
-
-/* =====================================================================
-   10. The player: steps, play, pause, speed, seek (shared engine)
-   ===================================================================== */
-const engine = new AVL();
-const HOLD = { compare: 0.12, descend: 0.05, start: 0.25, update: 0.25, place: 0.35, imbalance: 0.6, rotate: 0.55, done: 0.8, found: 0.5, missing: 0.4, duplicate: 0.4, remove: 0.4, replace: 0.5, succ: 0.2, clear: 0.4 };
-const RATE = { compare: 0.005, descend: 0.004, update: 0.006 };
-const player = new Player({
-  build: buildTransition,
-  morph,
-  holdFor: st => readingHold(st, HOLD, RATE, REDUCED),
-  onShow: i => showStep(i),
-  onStep: (st, i, tr) => { Sound.step(st, tr.dur); if (st.kind === 'done') kickAll(0.06); },
-  onBack: () => { if (Sound.ready()) Sound.tink(660, 0.06, 0, 0.2); },
-  onRefresh: () => refreshAfterStep(),
-  onUI: () => transport.updatePlayUI(),
-  onLoad: () => transport.build(),
-  onGesture: () => Sound.ensure(),
-});
-const transport = mountTransport(document.getElementById('transport'), player, {
-  onGesture: () => Sound.ensure(),
-  tickClass: (s, k, steps) => (s.kind === 'rotate' ? 'rot' : '') + (k > 0 && steps[k - 1].op !== s.op ? ' gap' : ''),
-});
-bar = document.querySelector('#transport .bar');
-new ResizeObserver(measureFree).observe(dock);
-const trFor = i => player.trFor(i);
-const currentPose = () => player.pose();
-
-function launch(title, stepsFn, intro, demo = false) {
-  const startSnap = engine.snap();
-  const steps = stepsFn();
-  player.load({ title, steps, startSnap, startPose: staticPose(startSnap), intro, demo });
-  Sound.ensure();
-}
-function kickAll(v) { if (REDUCED) return; for (const vis of visuals.values()) vis.tiltV += (Math.random() - 0.5) * v * 10; }
-
-/* =====================================================================
-   11. Interface
-   ===================================================================== */
-const $ = id => document.getElementById(id);
-const els = { cx: $('cxline'), mstats: $('mstats'), err: $('err'), val: $('val') };
-const plac = placard();
-const placeCallout = calloutPlacer(camera, THREE);
-
-function currentSnap() { return player.idx >= 0 ? player.prog.steps[player.idx].snap : player.prog.startSnap; }
-function showStep(i) {
-  const prog = player.prog, st = i >= 0 ? prog.steps[i] : null;
-  // rotation cases met so far in this run
-  const seen = [];
-  for (let k = 0; k <= i; k++) { const s = prog.steps[k]; if (s.kind === 'rotate' && !seen.includes(s.kase)) seen.push(s.kase); }
-  let html = '';
-  if (st && st.chip && (st.kind === 'imbalance' || st.kind === 'rotate')) html += `<span class="chip hot">${st.chip}</span><span class="chip-note">${CASE_NOTE[st.chip]}</span>`;
-  else if (prog.demo) html += ['LL', 'RR', 'RL', 'LR'].map(k => `<span class="chip${seen.includes(k) ? ' done' : ''}">${k}</span>`).join('') + `<span class="chip-note">${seen.length} of 4 rotation cases</span>`;
-  plac.set({
-    op: st ? st.op : prog.title,
-    stepno: prog.steps.length ? `Step ${i + 1} / ${prog.steps.length}` : '',
-    head: st ? st.head : prog.intro ? prog.intro.head : `${prog.title}.`,
-    body: st ? st.body : prog.intro ? prog.intro.body : '',
-    chips: html,
-  });
-  transport.mark(i);
-}
-function refreshAfterStep() {
-  transport.updatePlayUI();
-  const snap = currentSnap();
-  const n = Object.keys(snap.n).length, h = snap.root != null ? snap.n[snap.root].h : 0;
-  els.cx.textContent = n === 0
-    ? 'The wall is empty. Each insert, delete or search walks one path from the top, so the work grows with the height.'
-    : `${plural(n, 'value')}, height ${h}. With ${n} values an AVL tree is never taller than ${maxAvlHeight(n)}; an unbalanced search tree could be ${n} tall.`;
-  els.mstats.textContent = n ? `${plural(n, 'value')} · height ${h}` : 'empty';
-  updateInspector(snap);
-}
-
-// inspector
-function updateInspector(snap) {
-  const id = ui.selected;
-  if (id == null) return;
-  const o = snap.n[id];
-  if (!o) { closeInspector(); return; }
-  let depth = 0, c = snap.root;
-  while (c != null && c !== id) { const k = snap.n[c]; c = o.v < k.v ? k.l : k.r; depth++; }
-  const size = subtreeIds(snap, id).size;
-  const hl = o.l != null ? snap.n[o.l].h : 0, hr = o.r != null ? snap.n[o.r].h : 0;
-  const st = stateOf(o.bf);
-  const fill = { ink: '#1B1A17', yellow: '#E8A817', red: '#D1361E' }[st], rim = { ink: '#000', yellow: '#C48A0A', red: '#A82812' }[st], num = { ink: '#EFE8DA', yellow: '#1B1A17', red: '#FFF6EA' }[st];
-  $('insDisc').innerHTML = `<svg width="64" height="64" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="30" fill="${fill}" stroke="${rim}" stroke-width="1.2"/>${numeralSVG(o.v, 32, 32, numH(o.v) * 60, num, 14)}</svg>`;
-  const label = o.bf === 0 ? ['Level', 'both sides equally tall'] : Math.abs(o.bf) === 1 ? [`Leaning ${o.bf > 0 ? 'left' : 'right'}`, 'allowed, within ±1'] : ['Out of balance', 'must rotate'];
-  $('insState').innerHTML = `<b>${o.v} · ${label[0]}</b><span>${label[1]}</span>`;
-  $('insH').textContent = o.h; $('insBf').textContent = fmtBf(o.bf); $('insSize').textContent = size; $('insDepth').textContent = depth;
-  const fresh = o.h === 1 + Math.max(hl, hr) && o.bf === hl - hr;
-  $('insNote').textContent = fresh
-    ? `Left height ${hl}, right height ${hr}, so balance is ${hl} − ${hr} = ${fmtBf(hl - hr)}.`
-    : `Not updated yet: the walk back up has not reached ${o.v}. Its children now say ${hl} − ${hr} = ${fmtBf(hl - hr)}.`;
-}
-function select(id) {
-  ui.selected = id;
-  $('inspector').hidden = false; document.body.classList.add('inspecting');
-  updateInspector(currentSnap()); measureFree();
-}
-function closeInspector() { ui.selected = null; $('inspector').hidden = true; document.body.classList.remove('inspecting'); measureFree(); }
-
-// legend
-function legendRig(st, bf, label, sub, small) {
-  const fill = { ink: '#1B1A17', yellow: '#E8A817', red: '#D1361E' }[st];
-  const phi = tiltFor(bf, 1.02), s = 26, cx = 32, cy = 16;
-  const py = cy + (R + STEM) * s, dy = 1.02 * s * Math.tan(phi);
-  return `<div class="lg"><svg width="${small ? 32 : 64}" height="${small ? 28 : 56}" viewBox="0 0 64 56" aria-hidden="true">
-<line x1="${cx}" y1="${cy + R * s}" x2="${cx}" y2="${py}" stroke="#1B1A17" stroke-width="1"/>
-<line x1="${cx - 1.02 * s}" y1="${py + dy}" x2="${cx + 1.02 * s}" y2="${py - dy}" stroke="#1B1A17" stroke-width="1.6" stroke-linecap="round"/>
-<line x1="${cx - 1.02 * s}" y1="${py + dy}" x2="${cx - 1.02 * s}" y2="54" stroke="#1B1A17" stroke-width="1"/>
-<line x1="${cx + 1.02 * s}" y1="${py - dy}" x2="${cx + 1.02 * s}" y2="54" stroke="#1B1A17" stroke-width="1"/>
-<circle cx="${cx}" cy="${cy}" r="${R * s}" fill="${fill}"/></svg><div><b>${label}</b><span>${sub}</span></div></div>`;
-}
-const legendItems = (small) => legendRig('ink', 0, small ? 'Level 0' : 'Level', 'balance 0', small)
-  + legendRig('yellow', -1, small ? 'Leaning ±1' : 'Leaning', 'balance ±1 · allowed', small)
-  + legendRig('red', -2, small ? 'Must rotate ±2' : 'Must rotate', 'balance ±2', small)
-  + `<div class="lg"><svg width="${small ? 30 : 64}" height="24" viewBox="0 0 ${small ? 30 : 64} 24" aria-hidden="true"><line x1="${small ? 3 : 10}" y1="12" x2="${small ? 20 : 52}" y2="12" stroke="#2346A8" stroke-width="2.4" stroke-linecap="round"/><circle cx="${small ? 22 : 54}" cy="12" r="${small ? 5 : 6}" fill="#2346A8"/></svg><div><b>Path</b><span>the value in hand and its wires</span></div></div>`;
-$('legend').innerHTML = legendItems(true);
-$('helpLegend').innerHTML = legendItems(false);
-
-// input
-function parseValue() {
-  const raw = els.val.value.trim();
-  let msg = '';
-  if (!raw) msg = 'Type a value first, from 0 to 999.';
-  else if (!/^[+-]?\d+$/.test(raw)) msg = `“${raw.slice(0, 12)}” is not a whole number. Try something like 42.`;
-  else { const v = parseInt(raw, 10); if (v < 0 || v > 999) msg = 'Use a value from 0 to 999 so it fits on a disc.'; else { showErr(''); return v; } }
-  showErr(msg);
-  return null;
-}
-function showErr(msg) { els.err.textContent = msg; els.val.setAttribute('aria-invalid', msg ? 'true' : 'false'); }
-function afterLaunch() { if (isPhone()) els.val.blur(); else els.val.select(); }
-function doInsert(v) {
-  if (v == null) return;
-  if (!engine.has(v) && engine.count >= MAX_NODES) { showErr(`The mobile holds ${MAX_NODES} values. Delete some or clear the wall first.`); return; }
-  launch(`Insert ${v}`, () => opInsert(engine, v)); afterLaunch();
-}
-$('opform').addEventListener('submit', e => { e.preventDefault(); doInsert(parseValue()); });
-$('bSearch').addEventListener('click', () => { const v = parseValue(); if (v != null) { launch(`Search ${v}`, () => opSearch(engine, v)); afterLaunch(); } });
-$('bDelete').addEventListener('click', () => { const v = parseValue(); if (v != null) { launch(`Delete ${v}`, () => opDelete(engine, v)); afterLaunch(); } });
-$('bRandom').addEventListener('click', () => {
-  if (engine.count >= MAX_NODES) { showErr(`The mobile holds ${MAX_NODES} values. Delete some or clear the wall first.`); return; }
-  const used = new Set(Object.values(engine.n).map(o => o.v));
-  const choices = []; for (let v = 1; v <= 99; v++) if (!used.has(v)) choices.push(v);
-  if (!choices.length) for (let v = 100; v <= 999; v++) if (!used.has(v)) choices.push(v);
-  const v = choices[Math.floor(Math.random() * choices.length)];
-  els.val.value = v; showErr('');
-  launch(`Insert ${v}`, () => opInsert(engine, v));
-});
-$('bDemo').addEventListener('click', () => { showErr(''); launch('Demo · all four rotations', () => opDemo(engine), DEMO_INTRO, true); });
-$('bClear').addEventListener('click', () => {
-  if (engine.count === 0) { showErr('The wall is already empty.'); return; }
-  showErr(''); launch('Clear', () => opClear(engine));
-});
-bindSoundToggle($('bSound'));
-$('bFrame').addEventListener('click', resetView);
-const help = bindHelp();
-$('optBadges').addEventListener('change', e => { ui.badges = e.target.checked; });
-$('insClose').addEventListener('click', closeInspector);
-bindKeys({
-  player,
-  isTyping: e => e.target === els.val,
-  onEscape: (e, typing) => { if (help.isOpen()) help.close(); else if (ui.selected != null) closeInspector(); else if (typing) els.val.blur(); },
-  onHelp: help.open,
-  onGesture: () => Sound.ensure(),
-});
-mountNav({ current: 'avl' });
-
-// picking and camera takeover
-const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
-const pointers = new Set(); let down = null;
-canvas.addEventListener('pointerdown', e => {
-  pointers.add(e.pointerId);
-  down = pointers.size === 1 ? { x: e.clientX, y: e.clientY, t: performance.now() } : null;
-  if (e.button === 2 || e.button === 1 || pointers.size > 1 || e.shiftKey || e.ctrlKey || e.metaKey) manual();
-  Sound.ensure();
-});
-const endPointer = e => {
-  pointers.delete(e.pointerId);
-  if (e.type === 'pointerup' && down && Math.hypot(e.clientX - down.x, e.clientY - down.y) < 7 && performance.now() - down.t < 600) {
-    ndc.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
-    ray.setFromCamera(ndc, camera);
-    const hit = ray.intersectObjects(pickables.filter(m => m.parent.visible), false)[0];
-    if (hit) select(hit.object.userData.id); else if (ui.selected != null) closeInspector();
-  }
-  down = null;
-};
-canvas.addEventListener('pointerup', endPointer);
-canvas.addEventListener('pointercancel', endPointer);
-canvas.addEventListener('wheel', manual, { passive: true });
-canvas.addEventListener('contextmenu', e => e.preventDefault());
-canvas.addEventListener('pointermove', e => {
-  if (pointers.size || isPhone()) return;
-  ndc.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
-  ray.setFromCamera(ndc, camera);
-  canvas.style.cursor = ray.intersectObjects(pickables.filter(m => m.parent.visible), false).length ? 'pointer' : 'grab';
-});
-stage.onResize(measureFree);
-
-/* =====================================================================
-   12. Start: a small tree is lowered onto the wall
-   ===================================================================== */
-for (const v of [41, 20, 65, 11, 29, 50, 91, 26, 33, 72]) engine.quickInsert(v);
-const INTRO = { head: 'An AVL tree, hung as a mobile.', body: 'Each disc is a value, and each arm tilts toward its taller side. Red means a node must rotate. Press Demo to see all four rotation cases, or insert a value of your own.' };
-player.prog = { title: 'AVL Mobile', steps: [], startSnap: engine.snap(), startPose: null, intro: INTRO };
-player.prog.startPose = staticPose(player.prog.startSnap);
-player.intro(lowering(player.prog.startPose));
-transport.build(); showStep(-1); refreshAfterStep();
-measureFree();
-framer.place(34);
-
-let last = performance.now();
-renderer.setAnimationLoop(now => {
-  const dt = Math.min(0.05, Math.max(0, (now - last) / 1000)); last = now;
-  clock += dt;
-  player.tick(dt);
-  const P = player.pose();
-  applyPose(P, dt);
-  let focusRot = null;
-  const T = player.tr;
-  if (T && T.i >= 0 && player.prog.steps[T.i] && player.prog.steps[T.i].kind === 'rotate' && P.slot) {
-    const w = Math.sin(Math.PI * clamp01(T.t));
-    focusRot = { x: P.slot.x, y: P.slot.y - ROW / 2, w };
-  }
-  controls.update();
-  framer.update(dt, frameBox(P), focusRot);
-  camera.lookAt(controls.target);
-  fitLights(P);
-  placeCallout(P.callout);
-  renderer.render(scene, camera);
-});
-
-// hooks for automated checks
-window.__avl = { camera, Vec3: THREE.Vector3, AVL, opInsert, opDelete, opSearch, opDemo, engine, player, layoutSnap, visuals, launch, currentPose, renderer,
-  setSpeed: s => transport.setSpeed(s), seek: i => player.seek(i), stepBy: d => player.stepBy(d), togglePlay: () => player.togglePlay(),
-  freezeAt: (i, t) => player.freezeAt(i, t), unfreeze() { player.freeze = false; } };
-</script>
-</body>
+    <script type="module" src="/src/chapters/avl/main.ts"></script>
+  </body>
 </html>

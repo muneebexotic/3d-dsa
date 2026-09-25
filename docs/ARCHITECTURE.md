@@ -1,0 +1,98 @@
+# Architecture
+
+3D Data Structures is a static, multi-page site built with Vite and strict TypeScript. Each chapter is its own HTML page with its own entry module; they share a small core. Nothing runs on a server.
+
+## The one idea: record, then perform
+
+Every chapter works the same way:
+
+1. **Record.** The algorithm runs instantly on plain data and records a list of **steps**. Each step is a full snapshot (the whole tree or graph at that moment) plus the narration for it.
+2. **Describe.** For each step, the chapter builds a **transition**: `{ dur, pose(t) }`, where `t` runs from 0 to 1. A **pose** is a plain object that says where everything is at one instant. Step `i` starts exactly where step `i - 1` came to rest.
+3. **Perform.** The shared **player** (`src/core/player.ts`) plays transitions forward, plays the same function from 1 back to 0 to rewind, seeks with a blend, and holds between steps for reading time. The **scene** draws whatever pose it is handed, every frame.
+
+Because the algorithm never runs "live" during the animation, rewinding and seeking cost nothing, and the algorithm, the motion and the drawing can each be tested on their own.
+
+## Layers
+
+```
+src/
+  core/        shared by every chapter; knows nothing about any one chapter
+  site/        the chapter catalogue, navigation, 404 styles
+  styles/      design tokens and the shared gallery UI (tokens.css)
+  home/        the landing page
+  chapters/
+    <slug>/    one folder per chapter
+```
+
+Inside a chapter, modules fall into three layers. Imports only point down.
+
+| Layer                                           | Graph Net                                                                      | AVL Mobile                          | May use DOM / Three.js?         | Unit-tested              |
+| ----------------------------------------------- | ------------------------------------------------------------------------------ | ----------------------------------- | ------------------------------- | ------------------------ |
+| **Model:** the algorithm and its recorded steps | `algorithms.ts`, `presets.ts`                                                  | `engine.ts`                         | no                              | yes                      |
+| **Motion:** poses and transitions               | `poses.ts`, `motion.ts`, `program.ts`                                          | `layout.ts`, `poses.ts`             | no (Three.js colour maths only) | yes                      |
+| **View:** drawing and UI                        | `scene.ts`, `labels.ts`, `panels.ts`, `inspector.ts`, `editing.ts`, `sound.ts` | `scene.ts`, `panels.ts`, `sound.ts` | yes                             | through end-to-end tests |
+
+`main.ts` in each chapter is the composition root: it creates the scene, the player and the panels, and wires them to the page's markup. It holds no algorithm logic.
+
+### Core modules
+
+| Module                 | What it does                                                                                                 |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `player.ts`            | The step player: play, pause, step, seek, speed, rewind, load a new program mid-way.                         |
+| `stage.ts`             | Three.js renderer, lights, orbit controls, and a framer that keeps the piece in the free part of the screen. |
+| `controls.ts`          | Transport bar, narration placard, keyboard shortcuts, help card, callout.                                    |
+| `glyphs.ts`            | Wire numerals and capitals, drawn as strokes on canvas or SVG, never typeset.                                |
+| `sound.ts`             | Small procedural sounds; each chapter maps its steps onto them.                                              |
+| `math.ts`, `random.ts` | Easing, blending, and a seeded random generator.                                                             |
+| `prefs.ts`             | Reduced motion and viewport checks, safe outside a browser.                                                  |
+| `test-hooks.ts`        | Exposes internals as `window.__<chapter>` in the end-to-end build only.                                      |
+| `dom.ts`               | `byId()`, which throws if the markup is missing an element.                                                  |
+
+## Pages and the build
+
+- `src/site/chapters.ts` is the single list of chapters. The landing page, the navigation, the build inputs and the sitemap all read from it.
+- Each live chapter has `<slug>/index.html` (markup only) that loads `/src/chapters/<slug>/main.ts` and one stylesheet, `/src/chapters/<slug>/<slug>.css`.
+- Every page stylesheet starts with `@import` of `src/styles/tokens.css`, so the shared rules always come first in the cascade.
+- `vite.config.ts` builds one entry per page, puts Three.js in its own long-cached chunk, and writes `sitemap.xml` and `robots.txt` for `VITE_SITE_URL`.
+- `%VITE_SITE_URL%` in HTML (canonical links, Open Graph tags) is replaced at build time from `.env`.
+
+## Security headers
+
+`vercel.json` sets a strict Content-Security-Policy (scripts only from this site, no inline scripts), plus `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy` and `Permissions-Policy`. Built assets under `/assets/` have content hashes and are cached for a year. `vite preview` sends the same headers, so the end-to-end tests run under the real policy and fail on any violation.
+
+## Testing
+
+| Kind       | Where                          | Run with           | What it proves                                                                                                                                                                                                                                             |
+| ---------- | ------------------------------ | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Unit       | `tests/unit/` (mirrors `src/`) | `npm test`         | Algorithms agree with reference implementations on thousands of random graphs; AVL invariants hold through random operations; every step starts where the last one rested; the player's state machine; the catalogue is consistent with the pages on disk. |
+| End-to-end | `tests/e2e/`                   | `npm run test:e2e` | Every page loads with no console errors under the production CSP; every preset plays to the end in every mode; editing works; the phone layout works.                                                                                                      |
+
+The end-to-end suite builds with `--mode e2e` (which sets `VITE_TEST_HOOKS=true`) and serves it with `vite preview`. Production builds never include the hooks. CI machines have no GPU, so WebGL runs in software at a few frames a second; CI runs the suite in a single worker (about ten minutes) because two software-rendering browsers at once starve each other.
+
+Tests import source through the `@/` alias (`@/core/player`, `@/chapters/avl/engine`). Source files import each other with relative paths.
+
+## Adding a chapter
+
+Say the new chapter is No. 3, slug `lists`.
+
+1. **Catalogue.** In `src/site/chapters.ts`, set `live: true` and fill in `short`, `topic`, `blurb` and `tags`. The unit test in `tests/unit/site/chapters.test.ts` fails until steps 2 and 3 are done.
+2. **Page.** Create `lists/index.html`, markup only. Copy the head from `graphs/index.html` and change the title, description, canonical and Open Graph URLs (`%VITE_SITE_URL%/lists/`). Keep the shared ids (`stage`, `dock`, `masthead`, `placard`, `transport`, `tools`, `help`) so the core controls work.
+3. **Code.** Create `src/chapters/lists/`:
+   - the model: the structure, its operations, and a recorder that returns `Step[]` snapshots (no DOM, no Three.js);
+   - the motion: `poses.ts` with a rest pose per step and `buildTransition(prog, i)` / `morph(a, b, dur)` for the player;
+   - the view: `scene.ts` that draws any pose, plus panels if needed;
+   - `main.ts` that wires them to the player, `mountNav({ current: 'lists' })`, the transport and the placard;
+   - `lists.css`, starting with `@import '../../styles/tokens.css';`;
+   - test hooks via `exposeTestHooks('__lists', { player, ... })`.
+4. **Thumbnail.** Replace the sketch for `lists` in `src/home/art.ts`.
+5. **Tests.** Add `tests/unit/chapters/lists/` (model against a reference, motion continuity) and an end-to-end spec in `tests/e2e/`. Add the page to the `CHAPTERS` list in `tests/e2e/pages.spec.ts`.
+
+The build picks up the new page, the navigation and the sitemap from the catalogue; there is no other list to update.
+
+## Conventions
+
+- Strict TypeScript. `erasableSyntaxOnly` is on, so no enums, namespaces or constructor parameter properties.
+- ESLint (`eslint.config.js`) for correctness and Prettier (`.prettierrc.json`) for formatting. CI runs both.
+- UI text is plain English; captions explain why, not just what.
+- Sizes in the 3D scenes are world units, and each chapter keeps its sizes and colours in one file (`palette.ts`, `layout.ts`).
+- Anything the viewer can see should work with reduced motion, and with keyboard and touch.
