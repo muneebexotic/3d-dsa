@@ -4,15 +4,15 @@ An exhibition of algorithms in motion. Each chapter turns one data structure int
 
 **Live:** https://dsa.muscodes.com
 
-| No. | Chapter                                                                                                                     | Status        |
-| --- | --------------------------------------------------------------------------------------------------------------------------- | ------------- |
-| 1   | [AVL Mobile](https://dsa.muscodes.com/avl/): a self-balancing tree hung as a mobile, with LL, RR, LR and RL rotations       | live          |
-| 2   | [Graph Net](https://dsa.muscodes.com/graphs/): BFS, DFS and Dijkstra on a net of strings, with race mode and a graph editor | live          |
-| 3   | Lists, stacks & queues                                                                                                      | in the studio |
-| 4   | Hash table                                                                                                                  | in the studio |
-| 5   | Heap                                                                                                                        | in the studio |
-| 6   | Sorting                                                                                                                     | in the studio |
-| 7   | Trie                                                                                                                        | in the studio |
+| No. | Chapter                                                                                                                                             | Status        |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
+| 1   | [AVL Mobile](https://dsa.muscodes.com/avl/): a self-balancing tree hung as a mobile, with LL, RR, LR and RL rotations                               | live          |
+| 2   | [Graph Net](https://dsa.muscodes.com/graphs/): BFS, DFS and Dijkstra on a net of strings, with race mode and a graph editor                         | live          |
+| 3   | [Pointer Chain](https://dsa.muscodes.com/lists/): arrays, singly and doubly linked lists, stacks and a ring-buffer queue, with every pointer a wire | live          |
+| 4   | Hash table                                                                                                                                          | in the studio |
+| 5   | Heap                                                                                                                                                | in the studio |
+| 6   | Sorting                                                                                                                                             | in the studio |
+| 7   | Trie                                                                                                                                                | in the studio |
 
 ## Getting started
 
@@ -45,16 +45,20 @@ Then open http://localhost:5173/.
 index.html, 404.html        landing page and not-found page (markup only)
 avl/index.html              No. 1, AVL Mobile (markup only)
 graphs/index.html           No. 2, Graph Net (markup only)
+lists/index.html            No. 3, Pointer Chain (markup only)
 public/                     files served as-is (favicon)
 src/
   core/                     shared by every chapter: step player, Three.js stage,
-                            transport and narration, wire glyphs, sound
+                            transport and narration, wire glyphs, label batch,
+                            instanced wire pieces, colours, sound
   site/chapters.ts          the chapter catalogue: nav, build pages and sitemap read it
   site/nav.ts               the navigation every chapter shares
   styles/tokens.css         design tokens and the shared gallery UI
   home/                     the landing page's code, drawings and styles
   chapters/avl/             AVL Mobile: engine, layout, poses, scene, panels, main
   chapters/graphs/          Graph Net: algorithms, presets, poses, motion, scene, editor, main
+  chapters/lists/           Pointer Chain: array, linked list, stack, queue and bridge models,
+                            code listings, cost table, poses, motion, scene, panels, main
 tests/
   unit/                     Vitest, mirrors src/
   e2e/                      Playwright

@@ -33,7 +33,7 @@ jobs:
   e2e:
     name: End-to-end (Chromium, desktop and phone)
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5

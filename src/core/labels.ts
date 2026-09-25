@@ -1,10 +1,10 @@
 // Labels: every letter, number, pill and ring in one draw call. Wire glyphs live
 // in a small texture atlas; pills and rings are drawn as signed distances, so they
-// stay crisp at any size. Quads face the camera unless drawn flat on the plinth.
+// stay crisp at any size. Quads face the camera unless drawn flat on the floor.
 
 import * as THREE from 'three';
-import { GLYPH, glyphLayout, glyphWidth } from '../../core/glyphs';
-import type { RGB } from './palette';
+import type { RGB } from './color';
+import { GLYPH, glyphLayout, glyphWidth } from './glyphs';
 
 /** Shape modes understood by the shader: text, filled pill, outlined pill, ring (dashed if dashes > 0), soft glow ring. */
 export const MODE = { text: 0, fill: 1, outline: 2, ring: 3, glow: 4 } as const;

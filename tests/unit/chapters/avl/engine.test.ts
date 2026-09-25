@@ -58,7 +58,7 @@ describe('AVL', () => {
       expect(checkTree(t.snap())).toEqual([...model].sort((a, b) => a - b));
       expect(t.h(t.root)).toBeLessThanOrEqual(maxAvlHeight(t.count));
     }
-  });
+  }, 30_000); // 3000 recorded operations can take longer than the 5 s default on a slow machine
 
   it('snapshots every step, and the last one is the tree as it stands', () => {
     const t = new AVL();

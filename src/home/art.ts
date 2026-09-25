@@ -1,6 +1,6 @@
 // The landing page's drawings: a small AVL mobile that sways, a net that lifts
-// off its plinth in order of distance, and sketches of the chapters to come.
-// Plain SVG, drawn in code.
+// off its plinth in order of distance, a chain whose pointers turn round, and
+// sketches of the chapters to come. Plain SVG, drawn in code.
 
 import { glyphSVG } from '../core/glyphs';
 import { REDUCED } from '../core/prefs';
@@ -212,6 +212,114 @@ export function drawNet(svg: SVGSVGElement, { W = 320, H = 300, still = false, s
   requestAnimationFrame(frame);
 }
 
+/* ---------------- No. 3: a chain whose pointers turn round, one by one ---------------- */
+
+const CHAIN = ['4', '8', '15', '16', '23', '42'];
+
+/**
+ * A singly linked list being reversed. `phase` runs 0 → 1: each pointer swings up
+ * over its node from the next node to the previous one, while PREV, CUR and NEXT
+ * walk along; at 1 HEAD and TAIL have swapped ends.
+ */
+export function drawChain(svg: SVGSVGElement, { W = 640, H = 220, still = false, phase = 0.55 } = {}): void {
+  const n = CHAIN.length,
+    pad = W * 0.1,
+    gap = (W - 2 * pad) / (n - 1),
+    R = Math.min(17, gap * 0.2),
+    cy = H * 0.52,
+    knobY = cy - R - 3;
+  const x = (i: number) => pad + i * gap;
+  const ground = (gx: number, gy: number, col: string) =>
+    `<path d="M${gx} ${gy} V${gy + 7} M${gx - 8} ${gy + 7} H${gx + 8} M${gx - 5} ${gy + 11} H${gx + 5} M${gx - 2} ${gy + 15} H${gx + 2}" stroke="${col}" stroke-width="1.6" stroke-linecap="round" fill="none"/>`;
+  const tag = (tx: number, ty: number, label: string, cobalt: boolean) => {
+    const w = label.length * 9 + 14;
+    return `<rect x="${tx - w / 2}" y="${ty - 9}" width="${w}" height="18" rx="9" fill="${cobalt ? COBALT : PAPER}" stroke="${cobalt ? COBALT : INK}" stroke-width="1.2"/>${glyphSVG(label, tx, ty, 8.5, cobalt ? '#fff' : INK, 16)}`;
+  };
+  /** The pointer from node i, turned by a (0: to the next node, 1: to the previous one or null). */
+  const pointer = (i: number, a: number) => {
+    const ox = x(i),
+      oy = knobY;
+    const toNext = i < n - 1 ? gap : gap * 0.55,
+      toPrev = i > 0 ? gap : gap * 0.55;
+    const th = Math.PI * a,
+      len = (toNext * (1 - a) + toPrev * a) * (1 - 0.25 * Math.sin(th));
+    const ex = ox + Math.cos(th) * len,
+      ey = oy - Math.sin(th) * len * 0.8 + (a > 0.5 && i === 0 ? 14 * (a - 0.5) : 0);
+    const mx = (ox + ex) / 2,
+      my = (oy + ey) / 2;
+    const dx = ex - ox,
+      dy = ey - oy,
+      d = Math.hypot(dx, dy) || 1,
+      bow = Math.min(34, 0.3 * d);
+    const cx = mx + (dy / d) * bow * (dx >= 0 ? 1 : -1),
+      cyy = my - Math.abs(dx / d) * bow;
+    const hot = a > 0.02 && a < 0.98;
+    const col = hot ? COBALT : INK;
+    const toNull = (a < 0.5 && i === n - 1) || (a >= 0.5 && i === 0);
+    let out = `<path d="M${ox} ${oy} Q${cx.toFixed(1)} ${cyy.toFixed(1)} ${ex.toFixed(1)} ${ey.toFixed(1)}" fill="none" stroke="${col}" stroke-width="${hot ? 2.4 : 1.6}"/>`;
+    if (toNull && !hot) out += ground(ex, ey, INK);
+    else {
+      const ang = Math.atan2(ey - cyy, ex - cx);
+      const ax = ex - Math.cos(ang) * 2,
+        ay = ey - Math.sin(ang) * 2;
+      const p = (s: number, t: number) =>
+        `${(ax + Math.cos(ang + s) * t).toFixed(1)},${(ay + Math.sin(ang + s) * t).toFixed(1)}`;
+      if (!toNull)
+        out += `<polygon points="${ax.toFixed(1)},${ay.toFixed(1)} ${p(Math.PI - 0.45, 9)} ${p(Math.PI + 0.45, 9)}" fill="${col}"/>`;
+    }
+    return out + `<circle cx="${ox}" cy="${oy}" r="3" fill="${INK}"/>`;
+  };
+  function draw(ph: number): void {
+    // ph in [0, 1]: n swings, then HEAD and TAIL change ends
+    const per = 0.85 / n;
+    let g = `<path d="M${pad - 50} ${cy + R + 34} L${W - pad + 50} ${cy + R + 34} L${W - pad + 28} ${cy + R + 10} L${pad - 28} ${cy + R + 10} Z" fill="#F7F3EB" stroke="rgba(27,26,23,.1)"/>`;
+    let cur = n;
+    for (let i = 0; i < n; i++) {
+      const a = Math.max(0, Math.min(1, (ph - i * per) / (per * 0.8)));
+      const e = a < 0.5 ? 4 * a * a * a : 1 - Math.pow(-2 * a + 2, 3) / 2;
+      g += pointer(i, e);
+      if (cur === n && a < 1) cur = i;
+    }
+    const done = ph > 0.88;
+    for (let i = 0; i < n; i++) {
+      const px = x(i),
+        inHand = i === cur && !done;
+      g += `<line x1="${px}" y1="${cy + R}" x2="${px}" y2="${cy + R + 22}" stroke="${INK}" stroke-width="1.2"/><circle cx="${px}" cy="${cy + R + 22}" r="2.2" fill="${INK}"/>`;
+      g += disc(px, cy, R, inHand ? COBALT : INK, CHAIN[i], inHand ? '#fff' : LIGHT);
+    }
+    const ty = cy + R + 48;
+    const headAt = done ? n - 1 : 0,
+      tailAt = done ? 0 : n - 1;
+    g += tag(x(headAt), ty, 'HEAD', false) + tag(x(tailAt), ty, 'TAIL', false);
+    if (!done && cur < n) {
+      g += tag(x(cur) + (cur === 0 ? 34 : 0), ty + 24, 'CUR', true);
+      if (cur > 0) g += tag(x(cur - 1), ty + 24, 'PREV', true);
+      if (cur < n - 1) g += tag(x(cur + 1), ty + 24, 'NEXT', true);
+    }
+    svg.innerHTML = g;
+  }
+  if (still || REDUCED) {
+    draw(phase);
+    return;
+  }
+  const cycle = 14;
+  let visible = true;
+  new IntersectionObserver(es => {
+    visible = es[0].isIntersecting;
+  }).observe(svg);
+  const frame = (now: number) => {
+    if (visible) {
+      const t = (now / 1000) % cycle;
+      // rest, turn every pointer, hold, then fade back to the start
+      draw(t < 1.5 ? 0 : t < 10.5 ? (t - 1.5) / 9 : 1);
+      svg.style.opacity =
+        t > 13.2 ? String(Math.max(0.15, 1 - (t - 13.2) * 1.2)) : t < 0.6 ? String(0.15 + t * 1.4) : '1';
+    }
+    requestAnimationFrame(frame);
+  };
+  requestAnimationFrame(frame);
+}
+
 /* ---------------- sketches of the chapters to come ---------------- */
 
 const SKETCH = `fill="none" stroke="${FAINT}" stroke-width="1.5" stroke-dasharray="4 3" stroke-linecap="round"`;
@@ -222,16 +330,7 @@ const sketchDisc = (x: number, y: number, r: number) =>
 export const THUMBNAILS: Readonly<Record<string, (svg: SVGSVGElement) => void>> = {
   avl: s => drawMobile(s, { s: 0.74, cx: 240, top: 14 }),
   graphs: s => drawNet(s, { W: 480, H: 220, still: true, small: true }),
-  lists: s => {
-    let g = '';
-    ['4', '8', '15', '16'].forEach((v, i) => {
-      const x = 36 + i * 70;
-      g += `<rect x="${x}" y="84" width="44" height="32" rx="6" ${SKETCH}/>${glyphSVG(v, x + 22, 100, 14, GRAPHITE, 14)}`;
-      if (i < 3) g += `<path d="M${x + 48} 100 H${x + 64} M${x + 58} 95 L${x + 64} 100 L${x + 58} 105" ${SKETCH}/>`;
-    });
-    g += `<text x="36" y="72" font-size="11" font-weight="600" fill="${FAINT}" font-family="Avenir Next,Segoe UI,sans-serif" letter-spacing="1">HEAD</text>`;
-    s.innerHTML = g;
-  },
+  lists: s => drawChain(s, { W: 480, H: 220, still: true, phase: 0.42 }),
   hashing: s => {
     let g = '';
     for (let i = 0; i < 5; i++) {

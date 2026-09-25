@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Pointer Chain: linked lists, stacks and queues in 3D · 3D Data Structures</title>
+    <meta
+      name="description"
+      content="See how linked lists, stacks and queues work. Insert, delete, search and reverse a list in 3D, compare it with an array, and watch a circular queue wrap round."
+    />
+    <link rel="canonical" href="%VITE_SITE_URL%/lists/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="3D Data Structures" />
+    <meta property="og:title" content="Pointer Chain: linked lists, stacks and queues in 3D" />
+    <meta
+      property="og:description"
+      content="Pointers you can see: rewire a linked list, watch every pointer turn round in a reverse, and feel the difference between a stack and a queue."
+    />
+    <meta property="og:url" content="%VITE_SITE_URL%/lists/" />
+    <meta name="theme-color" content="#ECE6DA" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/src/chapters/lists/lists.css" />
+  </head>
+  <body>
+    <canvas
+      id="stage"
+      tabindex="-1"
+      aria-label="Linked lists, arrays, stacks and queues drawn as discs joined by wire pointers on a plinth. Use the controls to run operations."
+    ></canvas>
+    <div id="callout" aria-hidden="true"></div>
+
+    <aside id="dock" aria-label="Controls">
+      <header id="masthead">
+        <div class="eyebrow">3D Data Structures · No. 3</div>
+        <h1>Pointer Chain</h1>
+        <div id="mstats" class="eyebrow"></div>
+        <p class="sub">Linked lists, stacks and queues, with every pointer a wire you can follow.</p>
+      </header>
+
+      <section id="setup" class="card" aria-label="Structure">
+        <div class="seg" id="kindSeg" role="group" aria-label="Structure">
+          <button type="button" data-k="array" aria-pressed="false">Array</button>
+          <button type="button" data-k="singly" aria-pressed="true">Singly</button>
+          <button type="button" data-k="doubly" aria-pressed="false">Doubly</button>
+          <button type="button" data-k="stack" aria-pressed="false">Stack</button>
+          <button type="button" data-k="queue" aria-pressed="false">Queue</button>
+        </div>
+        <form id="opform" autocomplete="off" novalidate>
+          <div class="field">
+            <label for="val">Value (0–99)</label>
+            <input
+              id="val"
+              name="val"
+              type="text"
+              inputmode="numeric"
+              enterkeyhint="done"
+              placeholder="blank picks one"
+              maxlength="4"
+              aria-describedby="err"
+            />
+          </div>
+          <div class="field" id="idxField">
+            <label for="idx">Index</label>
+            <input
+              id="idx"
+              name="idx"
+              type="text"
+              inputmode="numeric"
+              enterkeyhint="done"
+              placeholder="0"
+              maxlength="4"
+              aria-describedby="err"
+            />
+          </div>
+          <button class="btn primary" id="bMain" type="submit">Insert</button>
+        </form>
+        <div id="err" role="alert"></div>
+        <div id="opbtns" role="group" aria-label="Operations"></div>
+        <div class="row2">
+          <label class="toggle" id="memToggle"
+            ><input type="checkbox" id="optMemory" /> <span id="memLabel">Memory view</span></label
+          >
+          <button class="btn quiet" id="bReset" type="button">Reset</button>
+        </div>
+      </section>
+
+      <section id="placard" class="card" aria-live="polite">
+        <div class="prow">
+          <span class="eyebrow" id="opname">Pointer Chain</span><span class="eyebrow" id="stepno"></span>
+        </div>
+        <div id="head"></div>
+        <div id="body"></div>
+        <div id="chips"></div>
+      </section>
+
+      <div id="transport"></div>
+    </aside>
+
+    <div id="side">
+      <aside id="inspector" class="card" hidden aria-label="Selected node">
+        <div class="prow">
+          <span class="eyebrow">Selected</span
+          ><button class="x" id="insClose" type="button" aria-label="Close">×</button>
+        </div>
+        <div class="ins-top">
+          <span id="insDisc"></span>
+          <div id="insState"></div>
+        </div>
+        <div class="ins-grid" id="insGrid"></div>
+        <div id="insNote"></div>
+      </aside>
+      <section id="code" class="card" aria-label="The code">
+        <div class="prow">
+          <span class="eyebrow" id="codeTitle">The code</span><span class="eyebrow faint">pseudocode</span>
+        </div>
+        <ol id="codeLines"></ol>
+      </section>
+      <section id="cost" class="card" aria-label="Cost of each operation">
+        <div class="eyebrow">Cost of each operation</div>
+        <div id="costTable"></div>
+      </section>
+    </div>
+
+    <div id="tools">
+      <button class="icon" id="bSound" type="button" aria-pressed="true" aria-label="Sound">
+        <svg
+          class="snd-on"
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M4 9 L8 9 L13 5 L13 19 L8 15 L4 15 Z" />
+          <path d="M16.5 9 A4 4 0 0 1 16.5 15" />
+          <path d="M19 6.5 A7.5 7.5 0 0 1 19 17.5" /></svg
+        ><svg
+          class="snd-off"
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M4 9 L8 9 L13 5 L13 19 L8 15 L4 15 Z" />
+          <path d="M17 9.5 L22 14.5 M22 9.5 L17 14.5" />
+        </svg>
+      </button>
+      <button class="icon" id="bFrame" type="button" aria-label="Reset view">
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M4 9 L4 4 L9 4" />
+          <path d="M15 4 L20 4 L20 9" />
+          <path d="M20 15 L20 20 L15 20" />
+          <path d="M9 20 L4 20 L4 15" />
+          <circle cx="12" cy="12" r="2.2" />
+        </svg>
+      </button>
+      <button class="icon" id="bHelp" type="button" aria-label="How to read the chain">
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <circle cx="12" cy="12" r="9" />
+          <path d="M9.6 9.3 A2.5 2.5 0 1 1 12 12.4 L12 13.8" />
+          <path d="M12 17 L12 17.1" />
+        </svg>
+      </button>
+    </div>
+
+    <aside id="legend" class="card" aria-label="Legend"></aside>
+
+    <div id="help" hidden role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+      <div class="card">
+        <div class="prow">
+          <h2 id="helpTitle">How to read the chain</h2>
+          <button class="x" id="helpClose" type="button" aria-label="Close">×</button>
+        </div>
+        <p>
+          <b>Each disc is a node, and each wire is a pointer.</b> A pointer is nothing more than the address of another
+          node, drawn as a wire from the knob on top of one disc to the knob of the next. The last node points to
+          <b>null</b>, drawn as an earth symbol.
+        </p>
+        <div class="lgwrap" id="helpLegend"></div>
+        <p>
+          <b>Paper tags are fields</b> the structure keeps, like HEAD and TAIL. <b>Cobalt tags are variables</b> in the
+          code on the right, like CUR. Watch the cobalt wires: they are the pointers the code has followed, and the
+          chips under the caption count them. Walking to a node costs one hop per node; an array jumps straight to any
+          index.
+        </p>
+        <p>
+          <b>Memory view</b> moves every node to its real address. The array stays in one block; the list’s nodes are
+          scattered, and only the wires keep them in order. For the queue it unbends the ring into the plain array it
+          really is.
+        </p>
+        <div class="keys">
+          Drag to orbit · scroll or pinch to zoom · right-drag or two fingers to pan · click a disc to inspect it.<br /><kbd
+            >Space</kbd
+          >
+          play or pause · <kbd>←</kbd> <kbd>→</kbd> step · <kbd>Enter</kbd> run the main operation · <kbd>?</kbd> this
+          card
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="/src/chapters/lists/main.ts"></script>
+  </body>
+</html>

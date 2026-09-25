@@ -1,5 +1,6 @@
 // Sizes and colours of the Graph Net pieces, in world units and sRGB.
 
+import { TONE, rgb, type RGB } from '../../core/color';
 import type { VisitState } from './algorithms';
 
 export const R = 0.4; // disc radius
@@ -13,22 +14,12 @@ export const PHI_FLAT = 0.84; // camera polar angle for a flat net
 export const PHI_LIFT = 1.17; // and for a lifted one
 export const REGION = { x: 14, z: 8.5 }; // knots stay inside this area
 
-export type RGB = readonly [number, number, number];
-const rgb = (h: number): RGB => [((h >> 16) & 255) / 255, ((h >> 8) & 255) / 255, (h & 255) / 255];
+export type { RGB } from '../../core/color';
+export { mix3 } from '../../core/color';
 
 export const COL = {
-  paper: rgb(0xf8f5ee),
-  ink: rgb(0x1b1a17),
-  graphite: rgb(0x57524a),
-  faint: rgb(0x8c857a),
+  ...TONE,
   string: rgb(0x837b6f),
-  yellow: rgb(0xe8a817),
-  yellowDeep: rgb(0xc48a0a),
-  red: rgb(0xd1361e),
-  cobalt: rgb(0x2346a8),
-  cobaltDeep: rgb(0x172f78),
-  light: rgb(0xefe8da),
-  white: [1, 1, 1] as RGB,
 } as const;
 
 /** How a knot looks in each state: unvisited is hollow, waiting yellow, processing cobalt, done ink. */
@@ -51,6 +42,3 @@ export const HEX_GLYPH: Readonly<Record<VisitState, string>> = {
   active: '#FFFFFF',
   done: '#EFE8DA',
 };
-
-export const mix3 = (a: RGB, b: RGB, t: number): RGB =>
-  a === b || t <= 0 ? a : t >= 1 ? b : [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];

@@ -177,15 +177,15 @@ section {
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(10, minmax(0, 1fr));
+  grid-template-columns: repeat(12, minmax(0, 1fr));
   gap: 18px;
 }
 .cards li {
   display: flex;
-  grid-column: span 2;
+  grid-column: span 3;
 }
 .cards li.live {
-  grid-column: span 5;
+  grid-column: span 4;
 }
 .soon .cbody {
   padding: 14px 16px 16px;

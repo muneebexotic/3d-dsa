@@ -6,6 +6,7 @@ import { expect, test, waitForChapter } from './support/fixtures';
 for (const [path, hook] of [
   ['/avl/', '__avl'],
   ['/graphs/', '__graph'],
+  ['/lists/', '__lists'],
 ] as const) {
   test(`${path}: the chapter menu replaces the pill row`, async ({ page }) => {
     await page.goto(path);
@@ -15,8 +16,8 @@ for (const [path, hook] of [
     await expect(menuButton).toHaveAttribute('aria-expanded', 'false');
     await menuButton.tap();
     await expect(menuButton).toHaveAttribute('aria-expanded', 'true');
-    await expect(page.locator('#navMenu a:not(.soon)')).toHaveCount(3);
-    await expect(page.locator('#navMenu a.soon')).toHaveCount(5);
+    await expect(page.locator('#navMenu a:not(.soon)')).toHaveCount(4);
+    await expect(page.locator('#navMenu a.soon')).toHaveCount(4);
   });
 
   test(`${path}: the speed button cycles speeds`, async ({ page }) => {

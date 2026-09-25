@@ -4,18 +4,13 @@
 
 import * as THREE from 'three';
 import { glyphWidth } from '../../core/glyphs';
+import { WireKit } from '../../core/instances';
+import { LabelBatch, MODE } from '../../core/labels';
 import { lerp, smooth } from '../../core/math';
 import { createStage, plasterTexture, type FrameBox, type Stage } from '../../core/stage';
 import type { AlgoKey, EdgeId, NodeId } from './algorithms';
-import { LabelBatch, MODE } from './labels';
 import { COL, KNOT, L0, PEG, PH, R, mix3, type RGB } from './palette';
 import type { EdgePose, NetPose, NodePose, ScenePose } from './poses';
-
-const MAX_DISCS = 140,
-  MAX_RODS = 7000,
-  MAX_BALLS = 700,
-  MAX_CONES = 440;
-const UP = new THREE.Vector3(0, 1, 0);
 
 /** Interaction state the scene needs to draw, owned by the page. */
 export interface DrawView {
@@ -100,27 +95,14 @@ export class GraphScene {
   readonly nodeWorld = new Map<string, NodeWorld>();
   readonly edgeWorld: EdgeWorld[] = [];
   private readonly plinths: THREE.Mesh[];
-  private readonly discs: THREE.InstancedMesh;
-  private readonly rods: THREE.InstancedMesh;
-  private readonly balls: THREE.InstancedMesh;
-  private readonly cones: THREE.InstancedMesh;
+  private readonly kit: WireKit;
   private readonly labels: LabelBatch;
-  private nR = 0;
-  private nB = 0;
-  private nC = 0;
-  private nD = 0;
   /** Eased visibility of the weight labels on each plinth. */
   private readonly wVis = [0, 0];
   private readonly camUp = new THREE.Vector3();
   private readonly camRight = new THREE.Vector3();
   private readonly camBack = new THREE.Vector3();
   // scratch objects, reused every frame
-  private readonly _m = new THREE.Matrix4();
-  private readonly _q = new THREE.Quaternion();
-  private readonly _s = new THREE.Vector3();
-  private readonly _p = new THREE.Vector3();
-  private readonly _d = new THREE.Vector3();
-  private readonly _c = new THREE.Color();
   private readonly _v = new THREE.Vector3();
   private readonly curve = new Float32Array(3 * 13);
   private readonly tmp = [0, 0, 0];
@@ -167,39 +149,24 @@ export class GraphScene {
       scene.add(m);
       return m;
     });
-    const mat = (o: THREE.MeshStandardMaterialParameters = {}) =>
-      new THREE.MeshStandardMaterial({
-        color: 0xffffff,
-        roughness: 0.45,
-        metalness: 0.08,
-        envMapIntensity: 0.55,
-        ...o,
-      });
-    const discGeo = new THREE.CylinderGeometry(R, R, 0.08, 40, 1);
-    discGeo.rotateX(Math.PI / 2);
-    this.discs = new THREE.InstancedMesh(
-      discGeo,
-      mat({ roughness: 0.78, metalness: 0, envMapIntensity: 0.35 }),
-      MAX_DISCS,
-    );
-    this.rods = new THREE.InstancedMesh(
-      new THREE.CylinderGeometry(1, 1, 1, 6, 1),
-      mat({ roughness: 0.5, metalness: 0.15 }),
-      MAX_RODS,
-    );
-    this.balls = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 12, 9), mat({ roughness: 0.4 }), MAX_BALLS);
-    const coneGeo = new THREE.ConeGeometry(1, 1, 12);
-    coneGeo.translate(0, -0.5, 0); // tip at the origin
-    this.cones = new THREE.InstancedMesh(coneGeo, mat(), MAX_CONES);
-    for (const m of [this.discs, this.rods, this.balls, this.cones]) {
-      m.castShadow = true;
-      m.frustumCulled = false;
-      m.count = 0;
-      m.setColorAt(0, new THREE.Color(0xffffff));
-      m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-      m.instanceColor?.setUsage(THREE.DynamicDrawUsage);
-      scene.add(m);
-    }
+    const tuned: Record<'rod' | 'ball' | 'cone' | 'disc', THREE.MeshStandardMaterialParameters> = {
+      disc: { roughness: 0.78, metalness: 0, envMapIntensity: 0.35 },
+      rod: { roughness: 0.5, metalness: 0.15 },
+      ball: { roughness: 0.4 },
+      cone: {},
+    };
+    this.kit = new WireKit(scene, {
+      material: kind =>
+        new THREE.MeshStandardMaterial({
+          color: 0xffffff,
+          roughness: 0.45,
+          metalness: 0.08,
+          envMapIntensity: 0.55,
+          ...tuned[kind],
+        }),
+      discRadius: R,
+      max: { discs: 140, rods: 7000, balls: 700, cones: 440 },
+    });
     this.labels = new LabelBatch(scene);
   }
 
@@ -208,73 +175,14 @@ export class GraphScene {
   }
 
   counts(): { rods: number; balls: number; discs: number; cones: number; labels: number } {
-    return { rods: this.nR, balls: this.nB, discs: this.nD, cones: this.nC, labels: this.labels.count };
+    const k = this.kit;
+    return { rods: k.rods.n, balls: k.balls.n, discs: k.discs.n, cones: k.cones.n, labels: this.labels.count };
   }
 
   render(): void {
     this.stage.renderer.render(this.stage.scene, this.stage.camera);
   }
 
-  /* ---------- instanced primitives ---------- */
-
-  private setCol(m: THREE.InstancedMesh, i: number, c: RGB): void {
-    this._c.setRGB(c[0], c[1], c[2], THREE.SRGBColorSpace);
-    m.setColorAt(i, this._c);
-  }
-  private addRod(ax: number, ay: number, az: number, bx: number, by: number, bz: number, r: number, col: RGB): void {
-    if (this.nR >= MAX_RODS) return;
-    const d = this._d.set(bx - ax, by - ay, bz - az);
-    const len = d.length();
-    if (len < 1e-4 || r < 1e-4) return;
-    d.divideScalar(len);
-    this._q.setFromUnitVectors(UP, d);
-    this._p.set((ax + bx) / 2, (ay + by) / 2, (az + bz) / 2);
-    this._s.set(r, len, r);
-    this._m.compose(this._p, this._q, this._s);
-    this.rods.setMatrixAt(this.nR, this._m);
-    this.setCol(this.rods, this.nR, col);
-    this.nR++;
-  }
-  private addBall(x: number, y: number, z: number, r: number, col: RGB): void {
-    if (this.nB >= MAX_BALLS || r < 1e-4) return;
-    this._q.identity();
-    this._p.set(x, y, z);
-    this._s.set(r, r, r);
-    this._m.compose(this._p, this._q, this._s);
-    this.balls.setMatrixAt(this.nB, this._m);
-    this.setCol(this.balls, this.nB, col);
-    this.nB++;
-  }
-  private addCone(
-    x: number,
-    y: number,
-    z: number,
-    dx: number,
-    dy: number,
-    dz: number,
-    r: number,
-    h: number,
-    col: RGB,
-  ): void {
-    if (this.nC >= MAX_CONES) return;
-    this._d.set(dx, dy, dz).normalize();
-    this._q.setFromUnitVectors(UP, this._d); // tip forward, base trailing
-    this._p.set(x, y, z);
-    this._s.set(r, h, r);
-    this._m.compose(this._p, this._q, this._s);
-    this.cones.setMatrixAt(this.nC, this._m);
-    this.setCol(this.cones, this.nC, col);
-    this.nC++;
-  }
-  private addDisc(x: number, y: number, z: number, s: number, col: RGB): void {
-    if (this.nD >= MAX_DISCS) return;
-    this._p.set(x, y, z);
-    this._s.set(s, s, s);
-    this._m.compose(this._p, this.camera.quaternion, this._s);
-    this.discs.setMatrixAt(this.nD, this._m);
-    this.setCol(this.discs, this.nD, col);
-    this.nD++;
-  }
   private curvePts(
     ax: number,
     ay: number,
@@ -308,7 +216,7 @@ export class GraphScene {
       const x0 = CP[k0 * 3],
         y0 = CP[k0 * 3 + 1],
         z0 = CP[k0 * 3 + 2];
-      this.addRod(
+      this.kit.rod(
         x0,
         y0,
         z0,
@@ -318,14 +226,14 @@ export class GraphScene {
         r,
         col,
       );
-      if (k > 0) this.addBall(x0, y0, z0, r, col);
+      if (k > 0) this.kit.ball(x0, y0, z0, r, col);
     }
   }
 
   /* ---------- drawing a pose ---------- */
 
   draw(P: ScenePose, dt: number, view: DrawView): void {
-    this.nR = this.nB = this.nC = this.nD = 0;
+    this.kit.begin();
     this.labels.begin();
     this.nodeWorld.clear();
     this.edgeWorld.length = 0;
@@ -339,16 +247,9 @@ export class GraphScene {
     if (view.pending && view.pointer) {
       // the string being tied follows the pointer
       const w = this.nodeWorld.get(`${view.pending.j}|${view.gen}:${view.pending.id}`);
-      if (w) this.addRod(w.X, w.Y + 0.03, w.Z, view.pointer.x, 0.03, view.pointer.z, 0.022, COL.cobalt);
+      if (w) this.kit.rod(w.X, w.Y + 0.03, w.Z, view.pointer.x, 0.03, view.pointer.z, 0.022, COL.cobalt);
     }
-    for (const m of [this.discs, this.rods, this.balls, this.cones]) {
-      m.instanceMatrix.needsUpdate = true;
-      if (m.instanceColor) m.instanceColor.needsUpdate = true;
-    }
-    this.discs.count = this.nD;
-    this.rods.count = this.nR;
-    this.balls.count = this.nB;
-    this.cones.count = this.nC;
+    this.kit.end();
     this.labels.end(camera);
   }
 
@@ -382,12 +283,12 @@ export class GraphScene {
         Y = ny(n),
         Z = nz(n),
         rr = R * s;
-      this.addBall(X, Y + 0.03, Z, KNOT * s, COL.ink);
-      this.addRod(X, Y + 0.03, Z, X, Y + PEG * s, Z, 0.02 * s, COL.ink);
+      this.kit.ball(X, Y + 0.03, Z, KNOT * s, COL.ink);
+      this.kit.rod(X, Y + 0.03, Z, X, Y + PEG * s, Z, 0.02 * s, COL.ink);
       const cx = X + camUp.x * rr,
         cy = Y + PEG * s + camUp.y * rr,
         cz = Z + camUp.z * rr;
-      this.addDisc(cx, cy, cz, s, n.fill);
+      this.kit.disc(cx, cy, cz, s, n.fill, this.camera.quaternion);
       this.nodeWorld.set(`${j}|${n.key}`, { x: cx, y: cy, z: cz, X, Y, Z, r: rr, id: n.id, j, gen: net.gen });
       // a dashed socket marks where a lifted knot used to lie
       if (n.h > 0.02) {
@@ -530,8 +431,8 @@ export class GraphScene {
       if (e.hl > 0.01) col = mix3(col, COL.cobalt, 0.7 * e.hl);
       const r = lerp(0.016, 0.026, e.tree) * (1 + 0.35 * e.hl) * s;
       for (let k = 0; k < n; k++) {
-        this.addRod(CP[k * 3], CP[k * 3 + 1], CP[k * 3 + 2], CP[k * 3 + 3], CP[k * 3 + 4], CP[k * 3 + 5], r, col);
-        if (k > 0 && r > 0.02) this.addBall(CP[k * 3], CP[k * 3 + 1], CP[k * 3 + 2], r, col);
+        this.kit.rod(CP[k * 3], CP[k * 3 + 1], CP[k * 3 + 2], CP[k * 3 + 3], CP[k * 3 + 4], CP[k * 3 + 5], r, col);
+        if (k > 0 && r > 0.02) this.kit.ball(CP[k * 3], CP[k * 3 + 1], CP[k * 3 + 2], r, col);
       }
       if (e.thr > 0.001) this.drawPartial(n, e.thr, e.thrFrom === e.a, 0.046 * s, COL.cobalt);
       if (e.path > 0.001) this.drawPartial(n, e.path, e.pathFrom === e.a, 0.05 * s, COL.cobalt);
@@ -543,7 +444,7 @@ export class GraphScene {
         const p1 = curveAt(ax, ay, az, bx, by, bz, sag, u1, [0, 0, 0]),
           p0 = curveAt(ax, ay, az, bx, by, bz, sag, u0, this.tmp);
         const c = e.path > 0.5 || e.thr > 0.5 ? COL.cobalt : col;
-        this.addCone(
+        this.kit.cone(
           p1[0],
           p1[1],
           p1[2],
@@ -590,7 +491,7 @@ export class GraphScene {
       const sag = sagOf(net, e, A, Bn),
         u = b.from === e.a ? b.u : 1 - b.u;
       const p = curveAt(nx(A), ny(A) + 0.03, nz(A), nx(Bn), ny(Bn) + 0.03, nz(Bn), sag, u, this.tmp);
-      this.addBall(p[0], p[1] + 0.02, p[2], (b.r || 0.1) * Math.min(1, b.a * 1.5), b.col);
+      this.kit.ball(p[0], p[1] + 0.02, p[2], (b.r || 0.1) * Math.min(1, b.a * 1.5), b.col);
     }
     // ripples spread across the plinth
     for (const rp of net.ripples) {
@@ -611,7 +512,7 @@ export class GraphScene {
           hx = w.x + camUp.x * o,
           hy = w.y + camUp.y * o,
           hz = w.z + camUp.z * o;
-        this.addRod(hx, hy + (1 - net.wire) * 14, hz, hx, 70, hz, 0.014, COL.ink);
+        this.kit.rod(hx, hy + (1 - net.wire) * 14, hz, hx, 70, hz, 0.014, COL.ink);
       }
       if (net.ruler > 0.01 && net.HS > 0) {
         const rx = ox + pl.cx - pl.w / 2 - 0.55,
@@ -619,14 +520,14 @@ export class GraphScene {
           yTop = ny(S) + 0.03,
           span = net.tau * net.HS,
           a = net.ruler;
-        this.addRod(rx, yTop, rz, rx, yTop - span, rz, 0.012 * a, COL.ink);
+        this.kit.rod(rx, yTop, rz, rx, yTop - span, rz, 0.012 * a, COL.ink);
         const T = Math.max(1, net.tau);
         const stepD = [1, 2, 5, 10, 20, 50, 100, 200, 500].find(v => T / v <= 8) || 1000;
         LB.group(rx, yTop, rz);
         LB.text(net.rulerText, rx, yTop + 0.45, rz, 0.15, COL.graphite, a, 0.2, 0);
         for (let d = 0; d <= net.tau + 1e-6; d += stepD) {
           const y = yTop - d * net.HS;
-          this.addRod(rx - 0.02, y, rz, rx + 0.18, y, rz, 0.01 * a, COL.ink);
+          this.kit.rod(rx - 0.02, y, rz, rx + 0.18, y, rz, 0.01 * a, COL.ink);
           LB.text(String(d), rx, y, rz, 0.2, COL.graphite, a, -0.3, 0);
         }
       }

@@ -1,8 +1,9 @@
-// The navigation every chapter shares. Desktop: a pill row at the top of the dock.
-// Phone: a menu button among the tools, opening a list of every chapter.
+// The navigation every chapter shares. Desktop: a pill at the top of the dock with
+// the site name and this chapter; the chapter opens a list of every chapter.
+// Phone: a menu button among the tools opens the same list.
 
 import { byId } from '../core/dom';
-import { CHAPTERS, LIVE_CHAPTERS, SITE_NAME, chapterPath } from './chapters';
+import { CHAPTERS, SITE_NAME, chapterPath } from './chapters';
 
 export interface NavOptions {
   /** Slug of the chapter this page shows. */
@@ -11,17 +12,26 @@ export interface NavOptions {
   tools?: HTMLElement;
 }
 
+const CHEVRON =
+  '<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4.5 L6 7.5 L9 4.5"/></svg>';
 const GRID_ICON =
   '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="4" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5"/></svg>';
 
 export function mountNav({ current, dock = byId('dock'), tools = byId('tools') }: NavOptions): { close(): void } {
   const here = (slug: string) => (slug === current ? ' aria-current="page"' : '');
+  const me = CHAPTERS.find(c => c.slug === current);
   const nav = document.createElement('nav');
   nav.className = 'site-nav';
   nav.setAttribute('aria-label', 'Chapters');
-  nav.innerHTML =
-    `<a class="home" href="/">${SITE_NAME}</a>` +
-    LIVE_CHAPTERS.map(c => `<a href="${chapterPath(c.slug)}"${here(c.slug)}>No. ${c.no} · ${c.short}</a>`).join('');
+  nav.innerHTML = `<a class="home" href="/">${SITE_NAME}</a>`;
+  const hereBtn = document.createElement('button');
+  hereBtn.type = 'button';
+  hereBtn.className = 'here';
+  hereBtn.setAttribute('aria-haspopup', 'true');
+  hereBtn.setAttribute('aria-expanded', 'false');
+  hereBtn.setAttribute('aria-controls', 'navMenu');
+  hereBtn.innerHTML = `${me ? `No. ${me.no} · ${me.short}` : 'Chapters'}${CHEVRON}`;
+  nav.appendChild(hereBtn);
   dock.prepend(nav);
 
   const btn = document.createElement('button');
@@ -38,6 +48,7 @@ export function mountNav({ current, dock = byId('dock'), tools = byId('tools') }
   menu.id = 'navMenu';
   menu.className = 'card';
   menu.hidden = true;
+  menu.setAttribute('aria-label', 'Chapters');
   menu.innerHTML =
     `<a href="/"><b>${SITE_NAME}</b><span>All chapters</span></a>` +
     CHAPTERS.map(c =>
@@ -49,12 +60,13 @@ export function mountNav({ current, dock = byId('dock'), tools = byId('tools') }
 
   const set = (open: boolean) => {
     menu.hidden = !open;
-    btn.setAttribute('aria-expanded', String(open));
+    for (const b of [btn, hereBtn]) b.setAttribute('aria-expanded', String(open));
   };
-  btn.addEventListener('click', e => {
-    e.stopPropagation();
-    set(menu.hidden !== false);
-  });
+  for (const b of [btn, hereBtn])
+    b.addEventListener('click', e => {
+      e.stopPropagation();
+      set(menu.hidden !== false);
+    });
   addEventListener('click', e => {
     if (!menu.hidden && !menu.contains(e.target as Node)) set(false);
   });

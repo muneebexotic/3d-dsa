@@ -5,6 +5,7 @@ import { expect, test, waitForChapter } from './support/fixtures';
 const CHAPTERS = [
   { path: '/avl/', title: 'AVL Mobile', hook: '__avl' },
   { path: '/graphs/', title: 'Graph Net', hook: '__graph' },
+  { path: '/lists/', title: 'Pointer Chain', hook: '__lists' },
 ] as const;
 
 test('the landing page lists the catalogue', async ({ page }) => {
@@ -13,9 +14,10 @@ test('the landing page lists the catalogue', async ({ page }) => {
   await expect(page).toHaveTitle('3D Data Structures');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Data structures, built to be watched.');
   await expect(page.locator('#cards > li')).toHaveCount(7);
-  await expect(page.locator('#cards > li.live a')).toHaveCount(2);
+  await expect(page.locator('#cards > li.live a')).toHaveCount(3);
   await expect(page.locator('#artMobile circle').first()).toBeAttached();
   await expect(page.locator('#artNet circle').first()).toBeAttached();
+  await expect(page.locator('#artChain circle').first()).toBeAttached();
 });
 
 test('a catalogue card opens its chapter', async ({ page }) => {
@@ -49,6 +51,6 @@ test('the 404 page points back to the catalogue', async ({ page }) => {
 
 test('search engines get a sitemap', async ({ request }) => {
   const sitemap = await (await request.get('/sitemap.xml')).text();
-  for (const p of ['/', '/avl/', '/graphs/']) expect(sitemap).toContain(`${p}</loc>`);
+  for (const p of ['/', '/avl/', '/graphs/', '/lists/']) expect(sitemap).toContain(`${p}</loc>`);
   expect(await (await request.get('/robots.txt')).text()).toContain('Sitemap:');
 });

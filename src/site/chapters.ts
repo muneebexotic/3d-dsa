@@ -43,12 +43,13 @@ export const CHAPTERS: readonly Chapter[] = [
   {
     no: 3,
     slug: 'lists',
-    title: 'Lists, stacks & queues',
+    title: 'Pointer Chain',
     short: 'Lists',
-    topic: 'Linear structures',
-    live: false,
+    topic: 'Lists, stacks & queues',
+    live: true,
     blurb:
-      'Pointers you can follow by hand, and the two disciplines, last in first out and first in first out, that the graph chapter leans on.',
+      'Every pointer is a wire. Rewire a linked list, watch each wire turn round in a reverse, and feel a stack give values back in the opposite order from a queue.',
+    tags: ['Array · singly · doubly', 'Stack · ring buffer'],
   },
   {
     no: 4,
