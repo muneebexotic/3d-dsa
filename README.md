@@ -11,7 +11,7 @@ An exhibition of algorithms in motion. Each chapter turns one data structure int
 | 3   | [Pointer Chain](https://dsa.muscodes.com/lists/): arrays, singly and doubly linked lists, stacks and a ring-buffer queue, with every pointer a wire | live          |
 | 4   | [Hash Clock](https://dsa.muscodes.com/hashing/): a hash table as a clock of buckets, with chaining, linear probing, load factor and rehashing       | live          |
 | 5   | [Heap Pyramid](https://dsa.muscodes.com/heap/): a binary heap as one array folded into a tree, with push, pop, heapify and Dijkstra's queue         | live          |
-| 6   | Sorting                                                                                                                                             | in the studio |
+| 6   | [Sorting Loom](https://dsa.muscodes.com/sorting/): six sorts weave the same threads into cloths, one row per comparison, with stability as knots    | live          |
 | 7   | Trie                                                                                                                                                | in the studio |
 
 ## Getting started
@@ -48,6 +48,7 @@ graphs/index.html           No. 2, Graph Net (markup only)
 lists/index.html            No. 3, Pointer Chain (markup only)
 hashing/index.html          No. 4, Hash Clock (markup only)
 heap/index.html             No. 5, Heap Pyramid (markup only)
+sorting/index.html          No. 6, Sorting Loom (markup only)
 public/                     files served as-is (favicon)
 src/
   core/                     shared by every chapter: step player, Three.js stage,
@@ -65,6 +66,8 @@ src/
                             recorder and operations, poses, motion, scene, work chart, main
   chapters/heap/            Heap Pyramid: the heap, the recorder and operations, Graph Net's
                             Dijkstra run, poses, motion, scene, work and row charts, main
+  chapters/sorting/         Sorting Loom: the inputs, six recorded sorts, one sort or all six
+                            as recordings, poses, motion, the loom scene, charts, main
 tests/
   unit/                     Vitest, mirrors src/
   e2e/                      Playwright

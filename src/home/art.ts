@@ -1,8 +1,11 @@
 // The landing page's drawings: a small AVL mobile that sways, a net that lifts
 // off its plinth in order of distance, a chain whose pointers turn round, a clock
-// whose hand winds a key round to its bucket, a key climbing a heap's pyramid,
-// and sketches of the chapters to come. Plain SVG, drawn in code.
+// whose hand winds a key round to its bucket, a key climbing a heap's pyramid, a
+// loom weaving a sort, and sketches of the chapters to come. Plain SVG, drawn in code.
 
+import { hexOf, dye, shade } from '../chapters/sorting/palette';
+import { SORTS, runSort, type Run } from '../chapters/sorting/sorts';
+import { threadsOf } from '../chapters/sorting/threads';
 import { glyphSVG } from '../core/glyphs';
 import { REDUCED } from '../core/prefs';
 
@@ -543,6 +546,148 @@ export function drawPyramid(svg: SVGSVGElement, { W = 640, H = 200, still = fals
   requestAnimationFrame(frame);
 }
 
+/* ---------------- No. 6: a loom weaving a sort ---------------- */
+
+const LOOM_KEYS = [5, 2, 7, 1, 8, 3, 6, 4];
+
+/** Where each thread stands before each pick: where[p][t] is the slot of thread t. */
+const slotsOf = (run: Run): number[][] =>
+  run.states.map(arr => {
+    const w = new Array<number>(arr.length);
+    arr.forEach((id, s) => (w[id] = s));
+    return w;
+  });
+
+/**
+ * One cloth drawn flat, as seen from above: a thread per key running from the start
+ * of the cloth (row 0) to row `rows`, bending wherever its key changed slot, with a
+ * gold pick across each row. `y(r)` places row r, `x(s)` slot s.
+ */
+function clothSVG(run: Run, rows: number, x: (s: number) => number, y: (r: number) => number, sw: number): string {
+  const where = slotsOf(run),
+    th = run.threads;
+  const at = (r: number, t: number) => where[Math.max(0, Math.min(where.length - 1, r - 1))][t];
+  let g = '';
+  const W = Math.floor(rows);
+  // gold picks first, under the threads
+  let p = 0;
+  for (const ev of run.events) {
+    if (ev.kind !== 'pick') continue;
+    p++;
+    if (p > W) break;
+    g += `<line x1="${x(ev.i).toFixed(1)}" y1="${y(p).toFixed(1)}" x2="${x(ev.j).toFixed(1)}" y2="${y(p).toFixed(1)}" stroke="${YELLOW}" stroke-width="${(sw * 0.8).toFixed(2)}" opacity="0.85"/>`;
+  }
+  for (const t of th.list) {
+    let d = `M${x(at(0, t.id)).toFixed(1)} ${y(0).toFixed(1)}`;
+    for (let r = 1; r <= W; r++) {
+      const a = at(r - 1, t.id),
+        b = at(r, t.id);
+      const y0 = y(r - 1),
+        y1 = y(r);
+      if (a === b) d += `L${x(b).toFixed(1)} ${y1.toFixed(1)}`;
+      else {
+        const m = (y0 + y1) / 2;
+        d += `C${x(a).toFixed(1)} ${m.toFixed(1)} ${x(b).toFixed(1)} ${m.toFixed(1)} ${x(b).toFixed(1)} ${y1.toFixed(1)}`;
+      }
+    }
+    g += `<path d="${d}" fill="none" stroke="${hexOf(dye(shade(t.v, th.top)))}" stroke-width="${sw}" stroke-linecap="round"/>`;
+  }
+  return g;
+}
+
+/**
+ * A loom as its two views, aligned slot by slot: the cloth from above, growing a
+ * row per comparison, and the keys from the front as bars, moving as insertion
+ * sort weaves them into order. `phase` runs 0 → 1 over the whole sort.
+ */
+export function drawLoom(svg: SVGSVGElement, { W = 320, H = 250, still = false, phase = 1 } = {}): void {
+  const run = runSort('insertion', threadsOf(LOOM_KEYS)),
+    where = slotsOf(run),
+    n = LOOM_KEYS.length,
+    C = run.comps;
+  const pitch = Math.min(30, (W - 70) / n),
+    x0 = W / 2 - ((n - 1) * pitch) / 2;
+  const x = (s: number) => x0 + s * pitch;
+  const base = H - 26,
+    barTop = base - 78,
+    clothBottom = barTop - 16,
+    clothTop = 16;
+  const dy = (clothBottom - clothTop) / C;
+  const R = 5.2;
+  function draw(ph: number): void {
+    const rows = ph * C,
+      k = Math.floor(rows),
+      f = rows - k;
+    const y = (r: number) => clothBottom - (rows - r) * dy;
+    let g = `<rect x="${x(-0.6)}" y="${clothTop - 4}" width="${x(n - 0.4) - x(-0.6)}" height="${clothBottom - clothTop + 8}" rx="4" fill="#EDE5D3"/>`;
+    g += clothSVG(run, rows, x, y, 1.9);
+    // the start of the cloth: a heading bar
+    g += `<line x1="${x(-0.55)}" y1="${y(0) - 2}" x2="${x(n - 0.45)}" y2="${y(0) - 2}" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/>`;
+    // the front: cells, and a bar per key as high as its value
+    g += `<line x1="${x(-0.7)}" y1="${base}" x2="${x(n - 0.3)}" y2="${base}" stroke="rgba(27,26,23,.25)" stroke-width="1.2"/>`;
+    const A = where[Math.min(C, k)],
+      B = where[Math.min(C, k + 1)];
+    for (const t of run.threads.list) {
+      const s = A[t.id] + (B[t.id] - A[t.id]) * (f * f * (3 - 2 * f));
+      const hx = x(s),
+        hy = base - 14 - ((t.v - 1) / (n - 1)) * (base - barTop - 22);
+      const col = hexOf(dye(shade(t.v, n)));
+      // the thread comes down from the cloth to its key
+      g += `<line x1="${hx.toFixed(1)}" y1="${clothBottom}" x2="${hx.toFixed(1)}" y2="${hy.toFixed(1)}" stroke="${col}" stroke-width="1.2" opacity="0.35"/>`;
+      g += `<line x1="${hx.toFixed(1)}" y1="${base}" x2="${hx.toFixed(1)}" y2="${hy.toFixed(1)}" stroke="${GRAPHITE}" stroke-width="1.3"/>`;
+      g += disc(hx, hy, R * 1.6, col, String(t.v), shade(t.v, n) < 0.42 ? INK : '#FFFFFF');
+    }
+    svg.innerHTML = g;
+  }
+  if (still || REDUCED) {
+    draw(phase);
+    return;
+  }
+  const cycle = 9;
+  let visible = true;
+  new IntersectionObserver(es => {
+    visible = es[0].isIntersecting;
+  }).observe(svg);
+  const frame = (now: number) => {
+    if (visible) {
+      const t = (now / 1000) % cycle;
+      // rest, weave, hold, then fade back to the start
+      draw(t < 0.8 ? 0 : t < 6.8 ? (t - 0.8) / 6 : 1);
+      svg.style.opacity =
+        t > 8.2 ? String(Math.max(0.15, 1 - (t - 8.2) * 1.2)) : t < 0.6 ? String(0.15 + t * 1.4) : '1';
+    }
+    requestAnimationFrame(frame);
+  };
+  requestAnimationFrame(frame);
+}
+
+/** Six sorts' cloths, woven on the same ten keys and stood up side by side: their heights are their work. */
+export function drawTapestries(svg: SVGSVGElement, { W = 480, H = 220 } = {}): void {
+  const th = threadsOf([6, 2, 9, 4, 10, 1, 7, 3, 8, 5]);
+  const runs = SORTS.map(k => runSort(k, th));
+  const most = Math.max(...runs.map(r => r.comps));
+  const n = th.n,
+    gap = 12,
+    panel = (W - 40 - gap * 5) / 6,
+    base = H - 30,
+    top = 14;
+  const dy = (base - top) / most;
+  let g = `<rect x="14" y="${base + 2}" width="${W - 28}" height="10" rx="3" fill="#EFE9DD" stroke="rgba(27,26,23,.12)"/>`;
+  runs.forEach((run, k) => {
+    const x0 = 20 + k * (panel + gap),
+      px = panel / n;
+    const x = (s: number) => x0 + (s + 0.5) * px;
+    const C = run.comps;
+    // stood up: the finished front at the bottom, the start of the cloth at the top
+    const y = (r: number) => base - (C - r) * dy;
+    g += `<rect x="${x0}" y="${y(0) - 3}" width="${panel}" height="${base - y(0) + 3}" rx="2" fill="#EDE5D3"/>`;
+    g += clothSVG(run, C, x, y, 1.15);
+    g += `<line x1="${x0}" y1="${y(0) - 3}" x2="${x0 + panel}" y2="${y(0) - 3}" stroke="${INK}" stroke-width="1.8"/>`;
+    g += glyphSVG(String(C), x0 + panel / 2, base + 7, 7, INK, 14);
+  });
+  svg.innerHTML = g;
+}
+
 /* ---------------- sketches of the chapters to come ---------------- */
 
 const SKETCH = `fill="none" stroke="${FAINT}" stroke-width="1.5" stroke-dasharray="4 3" stroke-linecap="round"`;
@@ -556,12 +701,7 @@ export const THUMBNAILS: Readonly<Record<string, (svg: SVGSVGElement) => void>> 
   lists: s => drawChain(s, { W: 480, H: 220, still: true, phase: 0.42 }),
   hashing: s => drawClock(s, { W: 480, H: 220, still: true }),
   heap: s => drawPyramid(s, { W: 480, H: 220, still: true, phase: 0.2 }),
-  sorting: s => {
-    const hs = [60, 110, 40, 130, 80, 150, 25, 95, 120];
-    s.innerHTML =
-      hs.map((h, i) => `<rect x="${44 + i * 27}" y="${176 - h}" width="17" height="${h}" rx="3" ${SKETCH}/>`).join('') +
-      `<line x1="34" y1="178" x2="286" y2="178" stroke="${FAINT}" stroke-width="1.2"/>`;
-  },
+  sorting: s => drawTapestries(s, { W: 480, H: 220 }),
   trie: s => {
     const N: Record<string, [number, number, string]> = {
       r: [160, 30, ''],

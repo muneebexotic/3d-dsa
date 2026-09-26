@@ -43,6 +43,9 @@ export const GLYPH: Readonly<Record<string, string>> = {
   Z: 'M8 6 L54 6 L8 94 L54 94',
   // lowercase x, for addresses such as 0x48
   x: 'M14 46 L48 94 M48 46 L14 94',
+  // lowercase a and b, for twins such as 3a and 3b
+  a: 'M48 70 A18 23 0 1 1 12 70 A18 23 0 1 1 48 70 M48 47 L48 94',
+  b: 'M14 6 L14 94 M14 70 A18 23 0 1 1 50 70 A18 23 0 1 1 14 70',
   // a decimal point and a slash, for load factors such as 0.75 and 6/8
   '.': 'M31 90 L31 92',
   '/': 'M50 6 L12 94',
@@ -61,6 +64,8 @@ export const GM: Readonly<Record<string, readonly [number, number]>> = {
   O: [0, 68],
   Q: [0, 68],
   x: [8, 54],
+  a: [6, 54],
+  b: [8, 56],
   '.': [22, 40],
   '/': [4, 58],
 };

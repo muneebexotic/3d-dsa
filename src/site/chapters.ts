@@ -76,11 +76,13 @@ export const CHAPTERS: readonly Chapter[] = [
   {
     no: 6,
     slug: 'sorting',
-    title: 'Sorting',
+    title: 'Sorting Loom',
     short: 'Sorting',
-    topic: 'Algorithms',
-    live: false,
-    blurb: 'Insertion, merge, quick and heap sort racing on the same bars.',
+    topic: 'Sorting',
+    live: true,
+    blurb:
+      'Every key is a thread and every comparison weaves a row. Six sorts weave the same threads: the O(n²) cloths come out long, the O(n log n) ones short, and the unstable ones tie knots.',
+    tags: ['Bubble · insertion · selection', 'Merge · quick · heap'],
   },
   {
     no: 7,

@@ -125,7 +125,39 @@ interface HeapHooks {
   togglePlay(): void;
 }
 
+interface SortStepHook {
+  kind: string;
+  head: string;
+  looms: { rows: number; arr: number[]; done: boolean }[];
+}
+
+interface SortingHooks {
+  player: {
+    playing: boolean;
+    idx: number;
+    tr: unknown;
+    prog: {
+      steps: SortStepHook[];
+      rec: { mode: 'solo' | 'race'; looms: { key: string; run: { comps: number; writes: number; knots: number } }[] };
+    };
+    atEnd(): boolean;
+  };
+  ui: { mode: string; sort: string; kind: string; n: number; seed: number; view: string; selected: number | null };
+  threads: { n: number; kind: string; seed: number; list: { id: number; v: number; label: string }[] };
+  camera: { fov: number };
+  /** Weave one sort, or all six, on the current threads. */
+  weave(key: string): void;
+  /** Use these values as the threads. */
+  useValues(values: number[]): void;
+  discScreen(t: number): Screen | null;
+  seek(i: number): void;
+  settle(): void;
+  advance(seconds: number): void;
+  togglePlay(): void;
+}
+
 interface Window {
+  __sorting: SortingHooks;
   __graph: GraphHooks;
   __avl: AvlHooks;
   __lists: ListHooks;

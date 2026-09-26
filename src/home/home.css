@@ -115,8 +115,11 @@ a {
 .vitrine {
   position: relative;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 14px;
+}
+.vitrine .piece {
+  grid-column: span 3;
 }
 .piece {
   margin: 0;
@@ -139,8 +142,16 @@ a {
   color: var(--graphite);
   border-top: 1px solid var(--line);
 }
-.piece.wide {
+.vitrine .piece.wide {
+  grid-column: span 6;
+}
+/* the last row holds three smaller pieces */
+.vitrine .piece.third {
   grid-column: span 2;
+}
+.piece.third figcaption {
+  font-size: 12.5px;
+  padding: 8px 12px 11px;
 }
 
 /* sections */
@@ -189,6 +200,15 @@ section {
 }
 .cards li.soon {
   grid-column: span 3;
+}
+/* a studio card on its own after an even row of live ones: half the row, with its sketch the size it has in a row of four */
+@media (min-width: 1081px) {
+  .cards li.live:nth-child(even) + li.soon:last-child {
+    grid-column: span 6;
+  }
+  .cards li.live:nth-child(even) + li.soon:last-child .thumb svg {
+    height: 190px;
+  }
 }
 .soon .cbody {
   padding: 14px 16px 16px;
@@ -416,7 +436,12 @@ footer a:hover {
     padding: 8px 10px 10px;
     font-size: 12.5px;
   }
-  .piece.wide {
+  .vitrine {
+    grid-template-columns: 1fr 1fr;
+  }
+  .vitrine .piece,
+  .vitrine .piece.wide,
+  .vitrine .piece.third {
     grid-column: auto;
   }
   .cards,

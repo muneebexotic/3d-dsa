@@ -27,7 +27,7 @@ export { expect };
 /** Waits until a chapter's scene and test hooks are up. */
 export async function waitForChapter(
   page: Page,
-  hook: '__avl' | '__graph' | '__lists' | '__hashing' | '__heap',
+  hook: '__avl' | '__graph' | '__lists' | '__hashing' | '__heap' | '__sorting',
 ): Promise<void> {
   await page.waitForFunction(h => !!window[h]?.player, hook);
 }

@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Sorting Loom: bubble, insertion, selection, merge, quick and heap sort in 3D · 3D Data Structures</title>
+    <meta
+      name="description"
+      content="See how the classic sorts work. Every value is a thread and every comparison weaves a row, so each sort leaves a cloth: long for O(n²), short for O(n log n), with a knot wherever an unstable sort crosses twins."
+    />
+    <link rel="canonical" href="%VITE_SITE_URL%/sorting/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="3D Data Structures" />
+    <meta property="og:title" content="Sorting Loom: six sorts, woven in 3D" />
+    <meta
+      property="og:description"
+      content="Every value is a thread and every comparison weaves a row. Six sorts weave the same threads into six cloths, and their lengths are their work."
+    />
+    <meta property="og:url" content="%VITE_SITE_URL%/sorting/" />
+    <meta name="theme-color" content="#ECE6DA" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/src/chapters/sorting/sorting.css" />
+  </head>
+  <body>
+    <canvas
+      id="stage"
+      tabindex="-1"
+      aria-label="A loom on a plinth. Each key stands at the front as a disc on a wire, as high as its value, and its thread runs back through the cloth: one row per comparison, a gold pick across each row, a bend wherever the key moved. Use the controls to weave one sort step by step, or all six at once."
+    ></canvas>
+    <div id="callout" aria-hidden="true"></div>
+
+    <aside id="dock" aria-label="Controls">
+      <header id="masthead">
+        <div class="eyebrow">3D Data Structures · No. 6</div>
+        <h1>Sorting Loom</h1>
+        <div id="mstats" class="eyebrow"></div>
+        <p class="sub">
+          Every key is a thread, and every comparison weaves a row. A sort leaves a cloth behind it, and the length of
+          the cloth is its work.
+        </p>
+      </header>
+
+      <section id="setup" class="card" aria-label="Sorts and threads">
+        <div id="sortSeg" role="group" aria-label="Weave one sort">
+          <button class="btn" type="button" data-s="bubble" aria-pressed="false">Bubble</button>
+          <button class="btn" type="button" data-s="insertion" aria-pressed="false">Insertion</button>
+          <button class="btn" type="button" data-s="selection" aria-pressed="false">Selection</button>
+          <button class="btn" type="button" data-s="merge" aria-pressed="false">Merge</button>
+          <button class="btn" type="button" data-s="quick" aria-pressed="false">Quick</button>
+          <button class="btn" type="button" data-s="heap" aria-pressed="false">Heap</button>
+          <button class="btn accent" id="bRace" type="button" aria-pressed="true">Weave all six</button>
+        </div>
+        <div class="field">
+          <span class="flabel" id="inputLabel">Threads</span>
+          <div class="seg four" id="inputSeg" role="group" aria-labelledby="inputLabel">
+            <button type="button" data-k="random" aria-pressed="true">Random</button>
+            <button type="button" data-k="nearly" aria-pressed="false">Nearly sorted</button>
+            <button type="button" data-k="reversed" aria-pressed="false">Reversed</button>
+            <button type="button" data-k="twins" aria-pressed="false">Twins</button>
+          </div>
+        </div>
+        <div class="row2">
+          <div class="seg mini" id="sizeSeg" role="group" aria-label="How many threads">
+            <button type="button" data-n="8" aria-pressed="false">8</button>
+            <button type="button" data-n="12" aria-pressed="false">12</button>
+            <button type="button" data-n="16" aria-pressed="true">16</button>
+            <button type="button" data-n="24" aria-pressed="false">24</button>
+          </div>
+          <button class="btn quiet" id="bShuffle" type="button">Shuffle</button>
+        </div>
+        <div class="row2">
+          <div class="seg mini" id="viewSeg" role="group" aria-label="View">
+            <button type="button" data-v="loom" aria-pressed="true">Loom</button>
+            <button type="button" data-v="bars" aria-pressed="false">Bars</button>
+            <button type="button" data-v="weave" aria-pressed="false">Weave</button>
+          </div>
+          <button class="btn quiet" id="bReset" type="button">Reset</button>
+        </div>
+      </section>
+
+      <section id="placard" class="card" aria-live="polite">
+        <div class="prow">
+          <span class="eyebrow" id="opname">Sorting Loom</span><span class="eyebrow" id="stepno"></span>
+        </div>
+        <div id="head"></div>
+        <div id="body"></div>
+        <div id="chips"></div>
+      </section>
+
+      <div id="transport"></div>
+    </aside>
+
+    <div id="side">
+      <aside id="inspector" class="card" hidden aria-label="Followed thread">
+        <div class="prow">
+          <span class="eyebrow">Following</span
+          ><button class="x" id="insClose" type="button" aria-label="Close">×</button>
+        </div>
+        <div class="ins-top">
+          <span id="insDisc"></span>
+          <div id="insState"></div>
+        </div>
+        <div class="ins-grid" id="insGrid"></div>
+        <div id="insNote"></div>
+      </aside>
+      <section id="code" class="card" aria-label="The code">
+        <div class="prow">
+          <span class="eyebrow" id="codeTitle">The code</span><span class="eyebrow faint">pseudocode</span>
+        </div>
+        <ol id="codeLines"></ol>
+      </section>
+      <section id="work" class="card" aria-label="The work on these threads">
+        <div class="prow">
+          <span class="eyebrow" id="workTitle">On these threads</span>
+          <div class="seg micro" id="measureSeg" role="group" aria-label="Count">
+            <button type="button" data-m="comps" aria-pressed="true">Compares</button>
+            <button type="button" data-m="writes" aria-pressed="false">Writes</button>
+          </div>
+        </div>
+        <div id="workChart"></div>
+      </section>
+      <section id="growth" class="card" aria-label="How the work grows with n">
+        <div class="prow">
+          <span class="eyebrow" id="growthTitle">As n grows</span><span class="eyebrow faint" id="growthKind"></span>
+        </div>
+        <div id="growthChart"></div>
+      </section>
+      <section id="cost" class="card" aria-label="Which sort when">
+        <div class="eyebrow">Which sort when</div>
+        <div id="costTable"></div>
+      </section>
+    </div>
+
+    <div id="tools">
+      <button class="icon" id="bSound" type="button" aria-pressed="true" aria-label="Sound">
+        <svg
+          class="snd-on"
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M4 9 L8 9 L13 5 L13 19 L8 15 L4 15 Z" />
+          <path d="M16.5 9 A4 4 0 0 1 16.5 15" />
+          <path d="M19 6.5 A7.5 7.5 0 0 1 19 17.5" /></svg
+        ><svg
+          class="snd-off"
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M4 9 L8 9 L13 5 L13 19 L8 15 L4 15 Z" />
+          <path d="M17 9.5 L22 14.5 M22 9.5 L17 14.5" />
+        </svg>
+      </button>
+      <button class="icon" id="bFrame" type="button" aria-label="Reset view">
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M4 9 L4 4 L9 4" />
+          <path d="M15 4 L20 4 L20 9" />
+          <path d="M20 15 L20 20 L15 20" />
+          <path d="M9 20 L4 20 L4 15" />
+          <circle cx="12" cy="12" r="2.2" />
+        </svg>
+      </button>
+      <button class="icon" id="bHelp" type="button" aria-label="How to read the loom">
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <circle cx="12" cy="12" r="9" />
+          <path d="M9.6 9.3 A2.5 2.5 0 1 1 12 12.4 L12 13.8" />
+          <path d="M12 17 L12 17.1" />
+        </svg>
+      </button>
+    </div>
+
+    <aside id="legend" class="card" aria-label="Legend"></aside>
+
+    <div id="help" hidden role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+      <div class="card">
+        <div class="prow">
+          <h2 id="helpTitle">How to read the loom</h2>
+          <button class="x" id="helpClose" type="button" aria-label="Close">×</button>
+        </div>
+        <p>
+          <b>Every key is a thread.</b> At the front of the loom each key stands in its slot of the array, on a wire as
+          high as its value, and its thread runs back from there. Seen from the front (<b>Bars</b>) the loom is the
+          familiar bar chart; seen from above (<b>Weave</b>) it is the whole history of the sort.
+        </p>
+        <p>
+          <b>Every comparison weaves one row.</b> A gold pick joins the two keys compared, then the cloth draws back a
+          row. When keys change places their threads bend and cross, so the length of a cloth is the number of
+          comparisons its sort made. <b>Weave all six</b> runs every sort on the same threads: the O(n²) sorts weave
+          long cloths, the O(n log n) ones short, and the gap grows with n.
+        </p>
+        <div class="lgwrap" id="helpLegend"></div>
+        <p>
+          <b>Stable</b> means equal keys keep the order they came in. Choose <b>Twins</b> to give every value a twin, 3a
+          and 3b, at the same height. A stable sort never lets twins cross; an unstable one ties a red knot where they
+          do.
+        </p>
+        <div class="keys">
+          Drag to orbit · scroll or pinch to zoom · right-drag or two fingers to pan · click a disc to follow its
+          thread.<br /><kbd>Space</kbd> play or pause · <kbd>←</kbd> <kbd>→</kbd> step · <kbd>?</kbd> this card
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="/src/chapters/sorting/main.ts"></script>
+  </body>
+</html>
