@@ -46,6 +46,10 @@ a {
   order: 0;
   align-self: center;
 }
+/* a chapter's name is its own span, so narrow screens can keep just its number */
+.top .site-nav a {
+  gap: 0;
+}
 .links {
   display: flex;
   gap: 4px;
@@ -412,6 +416,20 @@ footer a:hover {
   text-decoration: underline;
 }
 
+/* seven chapters in the header: tighter pills, then numbers only, before the phone's menu takes over */
+@media (max-width: 1240px) {
+  .top .site-nav a {
+    padding: 0 8px;
+  }
+  .links .hide-s {
+    display: none;
+  }
+}
+@media (max-width: 1080px) {
+  .top .site-nav .nm {
+    display: none;
+  }
+}
 @media (max-width: 1080px) {
   .hero {
     grid-template-columns: 1fr;

@@ -119,7 +119,7 @@ export class SunburstScene {
       scene,
       new THREE.BoxGeometry(1, 1, 1),
       new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.8, metalness: 0, envMapIntensity: 0.45 }),
-      12000,
+      16000,
     );
     this.boxes.mesh.castShadow = false;
     this.boxes.mesh.receiveShadow = true;
