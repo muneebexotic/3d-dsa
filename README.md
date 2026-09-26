@@ -4,6 +4,8 @@ An exhibition of algorithms in motion, in seven works. Each chapter turns one da
 
 **Live:** https://dsa.muscodes.com
 
+[![The 23-second trailer: all seven works, hung on one wall](media/brag.jpg)](media/brag.mp4)
+
 | No. | Chapter                                                                                                                                                                          |
 | --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1   | [AVL Mobile](https://dsa.muscodes.com/avl/): a self-balancing tree hung as a mobile, with LL, RR, LR and RL rotations                                                            |
