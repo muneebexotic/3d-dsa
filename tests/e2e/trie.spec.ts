@@ -130,21 +130,39 @@ test('the memory view unfolds every node into its 26 slots', async ({ page }) =>
   await expect(page.locator('#memBody')).toContainText('31 nodes × 26 slots = 806 slots.');
 });
 
-test('two thousand words, and a click on a letter inspects its node', async ({ page }) => {
+test('two thousand words: the same seven rings, and autocomplete from all of them', async ({ page }) => {
   await page.locator('#sizeSeg button[data-n="2000"]').click();
+  await expect(page.locator('#sizeSeg button[data-n="2000"]')).toHaveAttribute('aria-pressed', 'true');
   await expect(stats(page)).toHaveText('2,000 words · 4,746 nodes');
+  // software WebGL draws two thousand words slowly, so drive it through the hooks rather than clicks
   await page.evaluate(() => {
     const T = window.__trie;
     T.type('ST');
-    T.advance(6);
-    T.settle();
+    T.advance(5);
   });
-  const p = await page.evaluate(() => window.__trie.nodeScreen('f2000', 'ST'));
+  await expect(page.locator('#head')).toHaveText('ST: 44 words start with ST.');
+  await expect(page.locator('#listBody .ls-note')).toContainText('44 of 2,000 words start with ST');
+  expect(
+    await page.evaluate(() =>
+      window.__trie
+        .currentPose()
+        .fans[0].labels.map(l => l.text)
+        .at(-1),
+    ),
+  ).toBe('+35');
+});
+
+test('a click on a letter inspects its node', async ({ page }) => {
+  await playThrough(page);
+  await page.evaluate(() => window.__trie.settle());
+  const p = await page.evaluate(() => window.__trie.nodeScreen('f20', 'CAR'));
   expect(p).not.toBeNull();
   await page.mouse.click(p?.x ?? 0, p?.y ?? 0);
   await expect(page.locator('#inspector')).toBeVisible();
-  await expect(page.locator('#insState')).toContainText('ST');
-  await expect(page.locator('#insGrid')).toContainText('Steps to reach');
+  await expect(page.locator('#insState')).toContainText('CAR');
+  await expect(page.locator('#insState')).toContainText('a word · ring 3');
+  await expect(page.locator('#insGrid')).toContainText('3 of 26');
+  await expect(page.locator('#insNote')).toContainText('D, E, T');
   await page.locator('#insClose').click();
   await expect(page.locator('#inspector')).toBeHidden();
 });

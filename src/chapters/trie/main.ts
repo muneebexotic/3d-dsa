@@ -517,6 +517,8 @@ renderer.setAnimationLoop(now => {
 exposeTestHooks('__trie', {
   camera,
   renderer,
+  /** The Three.js scene, for timing what each part of it costs to draw. */
+  world: scene.stage.scene,
   player,
   ui,
   /** Type into the word box, as a person would. */
