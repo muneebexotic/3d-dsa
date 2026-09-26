@@ -9,6 +9,7 @@ const CHAPTERS = [
   { path: '/hashing/', title: 'Hash Clock', hook: '__hashing' },
   { path: '/heap/', title: 'Heap Pyramid', hook: '__heap' },
   { path: '/sorting/', title: 'Sorting Loom', hook: '__sorting' },
+  { path: '/trie/', title: 'Prefix Sunburst', hook: '__trie' },
 ] as const;
 
 test('the landing page lists the catalogue', async ({ page }) => {
@@ -16,15 +17,20 @@ test('the landing page lists the catalogue', async ({ page }) => {
   expect(res?.headers()['content-security-policy']).toContain("default-src 'self'");
   await expect(page).toHaveTitle('3D Data Structures');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Data structures, built to be watched.');
-  await expect(page.locator('#cards > li')).toHaveCount(7);
-  await expect(page.locator('#cards > li.live a')).toHaveCount(6);
+  await expect(page.locator('#cards > li.live a')).toHaveCount(7);
+  // every work is on the wall, so the catalogue closes with its colophon
+  await expect(page.locator('#cards > li.soon')).toHaveCount(0);
+  await expect(page.locator('#cards > li.colophon')).toContainText('Seven works, one method.');
+  await expect(page.locator('#cards > li.colophon a')).toHaveAttribute('href', '/avl/');
   await expect(page.locator('#artMobile circle').first()).toBeAttached();
   await expect(page.locator('#artNet circle').first()).toBeAttached();
   await expect(page.locator('#artChain circle').first()).toBeAttached();
   await expect(page.locator('#artClock circle').first()).toBeAttached();
   await expect(page.locator('#artPyramid circle').first()).toBeAttached();
   await expect(page.locator('#artLoom circle').first()).toBeAttached();
+  await expect(page.locator('#artSunburst circle').first()).toBeAttached();
   await expect(page.locator('svg[data-t="sorting"] path').first()).toBeAttached();
+  await expect(page.locator('svg[data-t="trie"] circle').first()).toBeAttached();
 });
 
 test('a catalogue card opens its chapter', async ({ page }) => {
@@ -58,7 +64,7 @@ test('the 404 page points back to the catalogue', async ({ page }) => {
 
 test('search engines get a sitemap', async ({ request }) => {
   const sitemap = await (await request.get('/sitemap.xml')).text();
-  for (const p of ['/', '/avl/', '/graphs/', '/lists/', '/hashing/', '/heap/', '/sorting/'])
+  for (const p of ['/', '/avl/', '/graphs/', '/lists/', '/hashing/', '/heap/', '/sorting/', '/trie/'])
     expect(sitemap).toContain(`${p}</loc>`);
   expect(await (await request.get('/robots.txt')).text()).toContain('Sitemap:');
 });

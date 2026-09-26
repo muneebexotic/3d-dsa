@@ -1,12 +1,16 @@
 // The landing page's drawings: a small AVL mobile that sways, a net that lifts
 // off its plinth in order of distance, a chain whose pointers turn round, a clock
 // whose hand winds a key round to its bucket, a key climbing a heap's pyramid, a
-// loom weaving a sort, and sketches of the chapters to come. Plain SVG, drawn in code.
+// loom weaving a sort, and a sunburst of words opening round a word being typed.
+// Plain SVG, drawn in code.
 
 import { hexOf, dye, shade } from '../chapters/sorting/palette';
 import { SORTS, runSort, type Run } from '../chapters/sorting/sorts';
 import { threadsOf } from '../chapters/sorting/threads';
-import { glyphSVG } from '../core/glyphs';
+import { RINGS, ringR } from '../chapters/trie/layout';
+import { layoutOf } from '../chapters/trie/poses';
+import { dictOf, shapeOf } from '../chapters/trie/trie';
+import { glyphSVG, glyphWidth } from '../core/glyphs';
 import { REDUCED } from '../core/prefs';
 
 const INK = '#1B1A17',
@@ -688,11 +692,147 @@ export function drawTapestries(svg: SVGSVGElement, { W = 480, H = 220 } = {}): v
   svg.innerHTML = g;
 }
 
-/* ---------------- sketches of the chapters to come ---------------- */
+/* ---------------- No. 7: a sunburst of words, opening round a word being typed ---------------- */
 
-const SKETCH = `fill="none" stroke="${FAINT}" stroke-width="1.5" stroke-dasharray="4 3" stroke-linecap="round"`;
-const sketchDisc = (x: number, y: number, r: number) =>
-  `<circle cx="${x}" cy="${y}" r="${r}" fill="#EFE9DD" stroke="${FAINT}" stroke-width="1.5" stroke-dasharray="4 3"/>`;
+/** Prefix Sunburst's twenty words. */
+const SUN = dictOf('AN AND ANT BE BEE CAR CARD CARE CART CARTOON CAT DO DOG DOT TEA TEN TO TOE TOP TRY'.split(' '));
+
+/**
+ * The trie of twenty words as a sunburst: one ring per letter, words A to Z from
+ * left to right, a gold ring where each word ends. `typed` letters light their
+ * path in cobalt, and a gold wedge holds every word they could become. With
+ * `list`, those words also drop down under the word box, as autocomplete shows them.
+ */
+function sunburstSVG(W: number, H: number, typed: string, list: boolean): string {
+  const S = shapeOf(SUN);
+  const L = layoutOf(S, typed || null);
+  const left = list ? 150 : 0;
+  const R = Math.min((W - left) / 2 - 10, H - 50) / (ringR(RINGS) + 0.4);
+  const cx = left + (W - left) / 2,
+    cy = H - 24;
+  const at = (i: number): [number, number] => {
+    const rr = ringR(S.depth[i]) * R;
+    return [cx + rr * Math.cos(L.th[i]), cy - rr * Math.sin(L.th[i])];
+  };
+  const out = (ringR(RINGS) + 0.4) * R;
+  const px0 = Math.max(4, cx - out - 16),
+    px1 = Math.min(W - 4, cx + out + 16);
+  let g = `<path d="M${px0} ${cy + 16} L${px1} ${cy + 16} L${px1 - 12} ${cy + 5} L${px0 + 12} ${cy + 5} Z" fill="#F7F3EB" stroke="rgba(27,26,23,.1)"/>`;
+  // the guide rings, like a protractor's
+  for (let k = 1; k <= RINGS; k++) {
+    const r = ringR(k) * R;
+    g += `<path d="M${(cx - r).toFixed(1)} ${cy} A${r.toFixed(1)} ${r.toFixed(1)} 0 0 1 ${(cx + r).toFixed(1)} ${cy}" fill="none" stroke="#C9C0B0" stroke-width="0.8" stroke-dasharray="2 3"/>`;
+  }
+  const wi = typed ? S.index.get(typed) : undefined;
+  if (wi != null) {
+    // the wedge: every word under the letters typed
+    const r0 = (ringR(S.depth[wi]) - 0.5) * R;
+    const a0 = L.lo[wi],
+      a1 = L.hi[wi];
+    const p = (r: number, a: number) => `${(cx + r * Math.cos(a)).toFixed(1)} ${(cy - r * Math.sin(a)).toFixed(1)}`;
+    g += `<path d="M${p(r0, a0)} L${p(out, a0)} A${out.toFixed(1)} ${out.toFixed(1)} 0 0 0 ${p(out, a1)} L${p(r0, a1)} A${r0.toFixed(1)} ${r0.toFixed(1)} 0 0 1 ${p(r0, a0)} Z" fill="${YELLOW}" fill-opacity="0.2"/>`;
+  }
+  const onPath = (i: number) => !!typed && typed.startsWith(S.ids[i]);
+  for (let i = 1; i < S.ids.length; i++) {
+    const [x, y] = at(i),
+      [px, py] = S.parent[i] > 0 ? at(S.parent[i]) : [cx, cy];
+    const hot = onPath(i);
+    g += `<line x1="${px.toFixed(1)}" y1="${py.toFixed(1)}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="${hot ? COBALT : INK}" stroke-width="${hot ? 2.2 : 1}" opacity="${hot ? 1 : 0.8}"/>`;
+  }
+  const rd = Math.min(8.5, 0.42 * R);
+  for (let i = 1; i < S.ids.length; i++) {
+    const [x, y] = at(i);
+    const hot = typed === S.ids[i];
+    const inside = !!typed && S.ids[i].startsWith(typed);
+    const dim = !!typed && !onPath(i) && !inside;
+    if (S.word[i])
+      g += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(rd + 2.4).toFixed(1)}" fill="none" stroke="${YELLOW}" stroke-width="1.8" opacity="${dim ? 0.45 : 1}"/>`;
+    g += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${rd.toFixed(1)}" fill="${hot ? COBALT : INK}" opacity="${dim ? 0.45 : 1}"/>`;
+    g += glyphSVG(S.ch[i], x, y, rd * 0.95, hot ? '#fff' : LIGHT, 15);
+  }
+  g += `<circle cx="${cx}" cy="${cy}" r="${(rd * 1.25).toFixed(1)}" fill="${YELLOW}"/>`;
+  // the word box, with the letters typed so far, and what autocomplete offers under it
+  const box = list ? 118 : Math.max(64, 18 + 13 * Math.max(3, typed.length));
+  if (list && typed) {
+    const words = S.ids.filter((id, i) => S.word[i] && id.startsWith(typed));
+    const h = 17;
+    g += `<rect x="12" y="36" width="${box}" height="${words.length * h + 8}" rx="6" fill="${PAPER}" stroke="rgba(27,26,23,.22)"/>`;
+    words.forEach((w, k) => {
+      const y = 44 + k * h + h / 2 - 1,
+        gh = 8.5;
+      const x0 = 24;
+      const wt = glyphWidth(typed, gh),
+        wr = glyphWidth(w.slice(typed.length), gh);
+      g += glyphSVG(typed, x0 + wt / 2, y, gh, INK, 17);
+      if (wr > 0) g += glyphSVG(w.slice(typed.length), x0 + wt + 0.12 * gh + wr / 2, y, gh, FAINT, 15);
+    });
+  }
+  g += `<rect x="12" y="10" width="${box}" height="24" rx="7" fill="${PAPER}" stroke="${COBALT}" stroke-width="1.3"/>`;
+  [...typed].forEach((ch, k) => (g += glyphSVG(ch, 25 + k * 13, 22, 11, INK, 14)));
+  g += `<line x1="${20 + typed.length * 13}" y1="15" x2="${20 + typed.length * 13}" y2="29" stroke="${COBALT}" stroke-width="1.6"/>`;
+  return g;
+}
+
+/** The sunburst, with a word typed into it a letter at a time: C, CA, CAR, CART. */
+export function drawSunburst(svg: SVGSVGElement, { W = 320, H = 250, still = false, typed = 'CA' } = {}): void {
+  if (still || REDUCED) {
+    svg.innerHTML = sunburstSVG(W, H, typed, W >= 420);
+    return;
+  }
+  const WORD = 'CART',
+    cycle = 9;
+  let visible = true;
+  new IntersectionObserver(es => {
+    visible = es[0].isIntersecting;
+  }).observe(svg);
+  let shown = '';
+  svg.innerHTML = sunburstSVG(W, H, shown, W >= 420);
+  const frame = (now: number) => {
+    if (visible) {
+      const t = (now / 1000) % cycle;
+      // rest, type a letter every second and a half, hold, then fade back to the start
+      const k = t < 1 ? 0 : Math.min(WORD.length, 1 + Math.floor((t - 1) / 1.5));
+      const typedNow = WORD.slice(0, k);
+      if (typedNow !== shown) {
+        shown = typedNow;
+        svg.innerHTML = sunburstSVG(W, H, typedNow, W >= 420);
+      }
+      svg.style.opacity =
+        t > cycle - 0.8 ? String(Math.max(0.15, 1 - (t - cycle + 0.8) * 1.2)) : t < 0.6 ? String(0.15 + t * 1.4) : '1';
+    }
+    requestAnimationFrame(frame);
+  };
+  requestAnimationFrame(frame);
+}
+
+/* ---------------- the colophon: the collection as a sunburst of its own ---------------- */
+
+/** The seven works as rays from one gold centre, numbered in learning order; the last carries a word mark. */
+export function colophonSVG(nos: readonly number[], W = 480, H = 220): string {
+  const cx = W / 2,
+    cy = H - 22,
+    R = Math.min(W * 0.36, H - 58);
+  const n = nos.length;
+  let g = '';
+  for (let k = 1; k <= 3; k++) {
+    const r = (R * k) / 3;
+    g += `<path d="M${cx - r} ${cy} A${r} ${r} 0 0 1 ${cx + r} ${cy}" fill="none" stroke="rgba(239,232,218,.16)" stroke-width="1" stroke-dasharray="2 4"/>`;
+  }
+  nos.forEach((no, k) => {
+    const a = Math.PI - 0.32 - ((Math.PI - 0.64) * k) / Math.max(1, n - 1);
+    const x = cx + R * Math.cos(a),
+      y = cy - R * Math.sin(a);
+    const last = k === n - 1;
+    g += `<line x1="${cx}" y1="${cy}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" stroke="rgba(239,232,218,.45)" stroke-width="1.3"/>`;
+    if (last)
+      g += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="20" fill="none" stroke="${YELLOW}" stroke-width="2.4"/>`;
+    g += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="15" fill="${PAPER}"/>${glyphSVG(String(no), x, y, 13, INK, 14)}`;
+  });
+  g += `<circle cx="${cx}" cy="${cy}" r="11" fill="${YELLOW}"/>`;
+  return `<svg viewBox="0 0 ${W} ${H}" aria-hidden="true">${g}</svg>`;
+}
+
+/* ---------------- the catalogue's thumbnails ---------------- */
 
 /** A thumbnail per chapter slug. */
 export const THUMBNAILS: Readonly<Record<string, (svg: SVGSVGElement) => void>> = {
@@ -702,30 +842,5 @@ export const THUMBNAILS: Readonly<Record<string, (svg: SVGSVGElement) => void>> 
   hashing: s => drawClock(s, { W: 480, H: 220, still: true }),
   heap: s => drawPyramid(s, { W: 480, H: 220, still: true, phase: 0.2 }),
   sorting: s => drawTapestries(s, { W: 480, H: 220 }),
-  trie: s => {
-    const N: Record<string, [number, number, string]> = {
-      r: [160, 30, ''],
-      c: [110, 76, 'C'],
-      d: [214, 76, 'D'],
-      a: [110, 122, 'A'],
-      o: [214, 122, 'O'],
-      t: [80, 168, 'T'],
-      r2: [140, 168, 'R'],
-      g: [214, 168, 'G'],
-    };
-    let g = '';
-    for (const [a, b] of [
-      ['r', 'c'],
-      ['r', 'd'],
-      ['c', 'a'],
-      ['d', 'o'],
-      ['a', 't'],
-      ['a', 'r2'],
-      ['o', 'g'],
-    ])
-      g += `<line x1="${N[a][0]}" y1="${N[a][1]}" x2="${N[b][0]}" y2="${N[b][1]}" ${SKETCH}/>`;
-    for (const [x, y, l] of Object.values(N))
-      g += sketchDisc(x, y, 14) + (l ? glyphSVG(l, x, y, 12, GRAPHITE, 14) : '');
-    s.innerHTML = g;
-  },
+  trie: s => drawSunburst(s, { W: 480, H: 220, still: true, typed: 'CA' }),
 };

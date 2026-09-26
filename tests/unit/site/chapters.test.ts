@@ -16,7 +16,9 @@ describe('chapter catalogue', () => {
 
   it('lists live chapters first, in learning order', () => {
     const firstSoon = CHAPTERS.findIndex(c => !c.live);
-    expect(CHAPTERS.slice(firstSoon).every(c => !c.live)).toBe(true);
+    // once the collection is complete there are none in the studio at all
+    const studio = firstSoon < 0 ? [] : CHAPTERS.slice(firstSoon);
+    expect(studio.every(c => !c.live)).toBe(true);
   });
 
   it.each(LIVE_CHAPTERS.map(c => [c.slug, c] as const))('%s has a page that loads its entry module', (slug, c) => {

@@ -10,6 +10,7 @@ for (const [path, hook] of [
   ['/hashing/', '__hashing'],
   ['/heap/', '__heap'],
   ['/sorting/', '__sorting'],
+  ['/trie/', '__trie'],
 ] as const) {
   test(`${path}: the chapter menu replaces the pill row`, async ({ page }) => {
     await page.goto(path);
@@ -19,8 +20,8 @@ for (const [path, hook] of [
     await expect(menuButton).toHaveAttribute('aria-expanded', 'false');
     await menuButton.tap();
     await expect(menuButton).toHaveAttribute('aria-expanded', 'true');
-    await expect(page.locator('#navMenu a:not(.soon)')).toHaveCount(7);
-    await expect(page.locator('#navMenu a.soon')).toHaveCount(1);
+    await expect(page.locator('#navMenu a:not(.soon)')).toHaveCount(8);
+    await expect(page.locator('#navMenu a.soon')).toHaveCount(0);
   });
 
   test(`${path}: the speed button cycles speeds`, async ({ page }) => {
@@ -92,6 +93,19 @@ test('a sort can be picked and woven from the bottom sheet', async ({ page }) =>
   await page.locator('#sizeSeg button[data-n="8"]').tap();
   await expect(page.locator('#opname')).toHaveText('Merge sort · Random 8');
   expect(await page.evaluate(() => window.__sorting.threads.n)).toBe(8);
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
+  expect(overflow).toBeLessThanOrEqual(0);
+});
+
+test('a word can be typed and searched from the bottom sheet', async ({ page }) => {
+  await page.goto('/trie/');
+  await waitForChapter(page, '__trie');
+  await page.locator('#word').tap();
+  await page.keyboard.type('ca');
+  await expect(page.locator('#word')).toHaveValue('CA');
+  await expect(page.locator('#listBody li')).toHaveCount(6);
+  await page.locator('#bSearch').tap();
+  await expect(page.locator('#opname')).toHaveText('Search CA');
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
   expect(overflow).toBeLessThanOrEqual(0);
 });

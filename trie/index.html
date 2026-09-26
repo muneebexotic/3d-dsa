@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Prefix Sunburst: tries, autocomplete and spell check in 3D · 3D Data Structures</title>
+    <meta
+      name="description"
+      content="See how a trie works. Every word is a ray of letters from one centre, one ring per letter, and words that begin alike share a ray. Type to watch autocomplete light every word you could mean, spell check a typo, and look a word up among 20, 200 or 2,000 words in the same number of steps."
+    />
+    <link rel="canonical" href="%VITE_SITE_URL%/trie/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="3D Data Structures" />
+    <meta property="og:title" content="Prefix Sunburst: a trie you can type into" />
+    <meta
+      property="og:description"
+      content="Every word is a ray of letters, and words that begin alike share one. Type, and the sunburst opens around every word you could mean."
+    />
+    <meta property="og:url" content="%VITE_SITE_URL%/trie/" />
+    <meta name="theme-color" content="#ECE6DA" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="/src/chapters/trie/trie.css" />
+  </head>
+  <body>
+    <canvas
+      id="stage"
+      tabindex="-1"
+      aria-label="A sunburst of letters standing on a plinth. Its gold centre is the root of a trie; every word runs out from it along a ray, one ring per letter, A to Z from left to right, and words that begin alike share their first letters. A gold ring marks every node where a word ends. Type a word to follow it."
+    ></canvas>
+    <div id="callout" aria-hidden="true"></div>
+
+    <aside id="dock" aria-label="Controls">
+      <header id="masthead">
+        <div class="eyebrow">3D Data Structures · No. 7</div>
+        <h1>Prefix Sunburst</h1>
+        <div id="mstats" class="eyebrow"></div>
+        <p class="sub">
+          Every word is a ray of letters from one centre, one ring per letter. Words that begin alike share a ray until
+          their letters part.
+        </p>
+      </header>
+
+      <section id="setup" class="card" aria-label="Words">
+        <label class="wordbox" for="word">
+          <span class="flabel">Type a word <span class="faint">· or just press a letter</span></span>
+          <input
+            id="word"
+            type="text"
+            inputmode="text"
+            autocomplete="off"
+            autocapitalize="characters"
+            spellcheck="false"
+            maxlength="7"
+            placeholder="CA"
+            aria-describedby="wordHint"
+          />
+          <span id="wordHint" class="hint">Up to 7 letters. Enter searches.</span>
+        </label>
+        <div id="opSeg" role="group" aria-label="Do with the word">
+          <button class="btn" id="bSearch" type="button" aria-pressed="false">Search</button>
+          <button class="btn" id="bInsert" type="button" aria-pressed="false">Insert</button>
+          <button class="btn" id="bDelete" type="button" aria-pressed="false">Delete</button>
+          <button class="btn" id="bSpell" type="button" aria-pressed="false">Spell check</button>
+          <button class="btn accent" id="bThree" type="button" aria-pressed="false">
+            Three sizes <span class="lite">20 · 200 · 2,000 words</span>
+          </button>
+        </div>
+        <div class="row2">
+          <div class="seg mini" id="sizeSeg" role="group" aria-label="Words in the trie">
+            <button type="button" data-n="20" aria-pressed="true">20</button>
+            <button type="button" data-n="200" aria-pressed="false">200</button>
+            <button type="button" data-n="2000" aria-pressed="false">2,000</button>
+          </div>
+          <button class="btn quiet" id="bZip" type="button">Zip again</button>
+        </div>
+        <div class="row2">
+          <div class="seg mini" id="viewSeg" role="group" aria-label="View">
+            <button type="button" data-v="letters" aria-pressed="true">Letters</button>
+            <button type="button" data-v="memory" aria-pressed="false">Memory</button>
+          </div>
+          <button class="btn quiet" id="bReset" type="button">Reset</button>
+        </div>
+      </section>
+
+      <section id="placard" class="card" aria-live="polite">
+        <div class="prow">
+          <span class="eyebrow" id="opname">Prefix Sunburst</span><span class="eyebrow" id="stepno"></span>
+        </div>
+        <div id="head"></div>
+        <div id="body"></div>
+        <div id="chips"></div>
+      </section>
+
+      <div id="transport"></div>
+    </aside>
+
+    <div id="side">
+      <aside id="inspector" class="card" hidden aria-label="Node">
+        <div class="prow">
+          <span class="eyebrow">Node</span><button class="x" id="insClose" type="button" aria-label="Close">×</button>
+        </div>
+        <div class="ins-top">
+          <span id="insDisc"></span>
+          <div id="insState"></div>
+        </div>
+        <div class="ins-grid" id="insGrid"></div>
+        <div id="insNote"></div>
+      </aside>
+      <section id="words" class="card" aria-label="The words found" aria-live="polite">
+        <div class="prow">
+          <span class="eyebrow" id="listTitle">Words it could become</span>
+        </div>
+        <div id="listBody"></div>
+      </section>
+      <section id="code" class="card" aria-label="The code">
+        <div class="prow">
+          <span class="eyebrow mono" id="codeTitle">The code</span><span class="eyebrow faint">pseudocode</span>
+        </div>
+        <ol id="codeLines"></ol>
+      </section>
+      <section id="steps" class="card" aria-label="Steps to find a word as the words grow">
+        <div class="prow">
+          <span class="eyebrow">Steps to find</span><span class="eyebrow faint" id="stepsWord"></span>
+        </div>
+        <div id="stepsChart"></div>
+      </section>
+      <section id="mem" class="card" aria-label="What the speed costs in memory">
+        <div class="eyebrow">What the speed costs</div>
+        <div id="memBody"></div>
+      </section>
+      <section id="cost" class="card" aria-label="Which structure when">
+        <div class="eyebrow">Which structure when</div>
+        <div id="costTable"></div>
+      </section>
+    </div>
+
+    <div id="tools">
+      <button class="icon" id="bSound" type="button" aria-pressed="true" aria-label="Sound">
+        <svg
+          class="snd-on"
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M4 9 L8 9 L13 5 L13 19 L8 15 L4 15 Z" />
+          <path d="M16.5 9 A4 4 0 0 1 16.5 15" />
+          <path d="M19 6.5 A7.5 7.5 0 0 1 19 17.5" /></svg
+        ><svg
+          class="snd-off"
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M4 9 L8 9 L13 5 L13 19 L8 15 L4 15 Z" />
+          <path d="M17 9.5 L22 14.5 M22 9.5 L17 14.5" />
+        </svg>
+      </button>
+      <button class="icon" id="bFrame" type="button" aria-label="Reset view">
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M4 9 L4 4 L9 4" />
+          <path d="M15 4 L20 4 L20 9" />
+          <path d="M20 15 L20 20 L15 20" />
+          <path d="M9 20 L4 20 L4 15" />
+          <circle cx="12" cy="12" r="2.2" />
+        </svg>
+      </button>
+      <button class="icon" id="bHelp" type="button" aria-label="How to read the sunburst">
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <circle cx="12" cy="12" r="9" />
+          <path d="M9.6 9.3 A2.5 2.5 0 1 1 12 12.4 L12 13.8" />
+          <path d="M12 17 L12 17.1" />
+        </svg>
+      </button>
+    </div>
+
+    <aside id="legend" class="card" aria-label="Legend"></aside>
+
+    <div id="help" hidden role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+      <div class="card">
+        <div class="prow">
+          <h2 id="helpTitle">How to read the sunburst</h2>
+          <button class="x" id="helpClose" type="button" aria-label="Close">×</button>
+        </div>
+        <p>
+          <b>Every word is a ray.</b> It starts at the gold centre, the root, and puts one letter on each ring: its
+          first letter on ring 1, its second on ring 2. Words run A to Z from left to right. Words that begin alike
+          share a ray, and it forks where their letters part, so CAR, CARD, CART and CARTOON are one ray. A gold ring
+          round a letter marks where a word ends: CAR is a word, and so is CART, one ring further out.
+        </p>
+        <p>
+          <b>Every node keeps a slot for each of the 26 letters</b>, so following a word is one step per letter, with
+          nothing to search. That is why a lookup depends on the word's length and not on how many words there are:
+          <b>Three sizes</b> shows 20, 200 and 2,000 words, all seven rings wide. <b>Memory</b> turns the sunburst to
+          show those slots, and how few of them hold anything.
+        </p>
+        <div class="lgwrap" id="helpLegend"></div>
+        <p>
+          <b>Type</b> and the sunburst opens around your letters: the gold wedge is every word they could become, read
+          out at the rim. <b>Spell check</b> finds the words one edit away, cutting every branch the moment it goes two
+          edits wrong.
+        </p>
+        <div class="keys">
+          Drag to orbit · scroll or pinch to zoom · right-drag or two fingers to pan · click a letter to inspect its
+          node.<br /><kbd>A</kbd>–<kbd>Z</kbd> type · <kbd>Enter</kbd> search · <kbd>Space</kbd> play or pause ·
+          <kbd>←</kbd> <kbd>→</kbd> step · <kbd>?</kbd> this card
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="/src/chapters/trie/main.ts"></script>
+  </body>
+</html>

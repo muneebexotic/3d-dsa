@@ -115,11 +115,11 @@ a {
 .vitrine {
   position: relative;
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(12, minmax(0, 1fr));
   gap: 14px;
 }
 .vitrine .piece {
-  grid-column: span 3;
+  grid-column: span 6;
 }
 .piece {
   margin: 0;
@@ -143,15 +143,16 @@ a {
   border-top: 1px solid var(--line);
 }
 .vitrine .piece.wide {
-  grid-column: span 6;
+  grid-column: span 12;
 }
-/* the last row holds three smaller pieces */
-.vitrine .piece.third {
-  grid-column: span 2;
+/* the last row holds four smaller pieces, the last of them the last work */
+.vitrine .piece.quarter {
+  grid-column: span 3;
 }
-.piece.third figcaption {
-  font-size: 12.5px;
-  padding: 8px 12px 11px;
+.piece.quarter figcaption {
+  font-size: 12px;
+  line-height: 1.3;
+  padding: 7px 10px 10px;
 }
 
 /* sections */
@@ -209,6 +210,37 @@ section {
   .cards li.live:nth-child(even) + li.soon:last-child .thumb svg {
     height: 190px;
   }
+}
+/* the colophon: the last card, once the collection is complete */
+.cards li.colophon {
+  grid-column: span 6;
+}
+.colophon .cardx {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+}
+.colophon .thumb {
+  background: #23211d;
+  border-bottom-color: rgba(239, 232, 218, 0.12);
+}
+.colophon .eyebrow {
+  color: #e8a817;
+}
+.colophon .cbody p {
+  color: rgba(248, 245, 238, 0.78);
+}
+.colophon .ctags span {
+  border-color: rgba(239, 232, 218, 0.3);
+  color: rgba(248, 245, 238, 0.85);
+}
+.colophon .open {
+  color: #e8a817;
+  text-decoration: none;
+  align-self: flex-start;
+}
+.colophon .open:hover {
+  text-decoration: underline;
 }
 .soon .cbody {
   padding: 14px 16px 16px;
@@ -392,7 +424,8 @@ footer a:hover {
   }
   .cards li,
   .cards li.live,
-  .cards li.soon {
+  .cards li.soon,
+  .cards li.colophon {
     grid-column: span 1;
   }
   .cards li.soon:last-child {
@@ -441,7 +474,7 @@ footer a:hover {
   }
   .vitrine .piece,
   .vitrine .piece.wide,
-  .vitrine .piece.third {
+  .vitrine .piece.quarter {
     grid-column: auto;
   }
   .cards,

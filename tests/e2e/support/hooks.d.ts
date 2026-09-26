@@ -156,7 +156,48 @@ interface SortingHooks {
   togglePlay(): void;
 }
 
+interface TrieFanHook {
+  key: string;
+  at: string | null;
+  path: string;
+  lit: string[];
+  dict: { words: string[] };
+}
+
+interface TrieStepHook {
+  kind: string;
+  head: string;
+  fans: TrieFanHook[];
+}
+
+interface TrieHooks {
+  player: {
+    playing: boolean;
+    idx: number;
+    tr: unknown;
+    prog: { steps: TrieStepHook[]; rec: { op: string; word: string; title: string } };
+    atEnd(): boolean;
+  };
+  ui: { size: number; view: string; word: string; op: string; selected: { fan: string; id: string } | null };
+  camera: { fov: number; position: { x: number; y: number; z: number } };
+  view: { mem: number };
+  /** Type into the word box, as a person would. */
+  type(text: string): void;
+  /** Run one of the operations on a word. */
+  run(op: 'search' | 'insert' | 'remove' | 'spell' | 'three', word: string): void;
+  setSize(n: number): void;
+  setView(v: 'letters' | 'memory'): void;
+  currentPose(): { fans: { key: string; wedge: unknown; labels: { text: string }[]; cy: number }[] };
+  nodeScreen(fan: string, id: string): Screen | null;
+  counts(): { rods: number; discs: number; balls: number; labels: number; boxes: number };
+  seek(i: number): void;
+  settle(): void;
+  advance(seconds: number): void;
+  togglePlay(): void;
+}
+
 interface Window {
+  __trie: TrieHooks;
   __sorting: SortingHooks;
   __graph: GraphHooks;
   __avl: AvlHooks;

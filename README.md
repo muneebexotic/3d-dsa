@@ -1,18 +1,20 @@
 # 3D Data Structures
 
-An exhibition of algorithms in motion. Each chapter turns one data structure into a 3D piece you can orbit, step through and rewind. Every step comes with a plain-English caption.
+An exhibition of algorithms in motion, in seven works. Each chapter turns one data structure into a 3D piece you can orbit, step through and rewind. Every step comes with a plain-English caption. The collection is complete: all seven are on the wall.
 
 **Live:** https://dsa.muscodes.com
 
-| No. | Chapter                                                                                                                                             | Status        |
-| --- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
-| 1   | [AVL Mobile](https://dsa.muscodes.com/avl/): a self-balancing tree hung as a mobile, with LL, RR, LR and RL rotations                               | live          |
-| 2   | [Graph Net](https://dsa.muscodes.com/graphs/): BFS, DFS and Dijkstra on a net of strings, with race mode and a graph editor                         | live          |
-| 3   | [Pointer Chain](https://dsa.muscodes.com/lists/): arrays, singly and doubly linked lists, stacks and a ring-buffer queue, with every pointer a wire | live          |
-| 4   | [Hash Clock](https://dsa.muscodes.com/hashing/): a hash table as a clock of buckets, with chaining, linear probing, load factor and rehashing       | live          |
-| 5   | [Heap Pyramid](https://dsa.muscodes.com/heap/): a binary heap as one array folded into a tree, with push, pop, heapify and Dijkstra's queue         | live          |
-| 6   | [Sorting Loom](https://dsa.muscodes.com/sorting/): six sorts weave the same threads into cloths, one row per comparison, with stability as knots    | live          |
-| 7   | Trie                                                                                                                                                | in the studio |
+| No. | Chapter                                                                                                                                                                          |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | [AVL Mobile](https://dsa.muscodes.com/avl/): a self-balancing tree hung as a mobile, with LL, RR, LR and RL rotations                                                            |
+| 2   | [Graph Net](https://dsa.muscodes.com/graphs/): BFS, DFS and Dijkstra on a net of strings, with race mode and a graph editor                                                      |
+| 3   | [Pointer Chain](https://dsa.muscodes.com/lists/): arrays, singly and doubly linked lists, stacks and a ring-buffer queue, with every pointer a wire                              |
+| 4   | [Hash Clock](https://dsa.muscodes.com/hashing/): a hash table as a clock of buckets, with chaining, linear probing, load factor and rehashing                                    |
+| 5   | [Heap Pyramid](https://dsa.muscodes.com/heap/): a binary heap as one array folded into a tree, with push, pop, heapify and Dijkstra's queue                                      |
+| 6   | [Sorting Loom](https://dsa.muscodes.com/sorting/): six sorts weave the same threads into cloths, one row per comparison, with stability as knots                                 |
+| 7   | [Prefix Sunburst](https://dsa.muscodes.com/trie/): a trie as a sunburst of words, with insert, search, delete, autocomplete as you type, spell check, and 20, 200 or 2,000 words |
+
+Taken in order, the seven go from a tree that balances numbers to a tree that spells words.
 
 ## Getting started
 
@@ -49,6 +51,7 @@ lists/index.html            No. 3, Pointer Chain (markup only)
 hashing/index.html          No. 4, Hash Clock (markup only)
 heap/index.html             No. 5, Heap Pyramid (markup only)
 sorting/index.html          No. 6, Sorting Loom (markup only)
+trie/index.html             No. 7, Prefix Sunburst (markup only)
 public/                     files served as-is (favicon)
 src/
   core/                     shared by every chapter: step player, Three.js stage,
@@ -68,6 +71,9 @@ src/
                             Dijkstra run, poses, motion, scene, work and row charts, main
   chapters/sorting/         Sorting Loom: the inputs, six recorded sorts, one sort or all six
                             as recordings, poses, motion, the loom scene, charts, main
+  chapters/trie/            Prefix Sunburst: the word lists, the trie and its shapes, the
+                            recordings (zip, type, search, insert, delete, spell check, three
+                            sizes), poses, motion, the sunburst scene, charts, main
 tests/
   unit/                     Vitest, mirrors src/
   e2e/                      Playwright

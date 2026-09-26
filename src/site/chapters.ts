@@ -87,11 +87,13 @@ export const CHAPTERS: readonly Chapter[] = [
   {
     no: 7,
     slug: 'trie',
-    title: 'Trie',
+    title: 'Prefix Sunburst',
     short: 'Trie',
-    topic: 'Strings',
-    live: false,
-    blurb: 'Words sharing their beginnings, one letter per branch.',
+    topic: 'Tries & autocomplete',
+    live: true,
+    blurb:
+      'Every word is a ray of letters, and words that begin alike share one. Type, and the sunburst opens around every word you could mean; look a word up among 20 or 2,000 words in the same few steps.',
+    tags: ['Insert · search · delete', 'Autocomplete · spell check'],
   },
 ];
 
