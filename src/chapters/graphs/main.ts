@@ -2,6 +2,7 @@
 // This file wires the pieces together: the page state, the player, the scene,
 // the panels, the editor and the controls.
 
+import { inject } from '@vercel/analytics';
 import { bindHelp, bindKeys, calloutPlacer, mountTransport, placard } from '../../core/controls';
 import { byId } from '../../core/dom';
 import { clamp01, lerp, plural } from '../../core/math';
@@ -23,6 +24,8 @@ import { fineIndex, makeProgram, type GraphProgram, type ProgramStep } from './p
 import { GraphScene } from './scene';
 import { playStepSound } from './sound';
 import { createDoc, createUiState, type Tool } from './state';
+
+inject();
 
 const ui = createUiState();
 const doc = createDoc();

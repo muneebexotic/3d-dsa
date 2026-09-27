@@ -2,6 +2,7 @@
 // a wire. This file wires the pieces together: the structures, the player, the
 // scene, the panels and the controls.
 
+import { inject } from '@vercel/analytics';
 import { bindHelp, bindKeys, calloutPlacer, mountTransport, placard } from '../../core/controls';
 import { byId } from '../../core/dom';
 import { lerp } from '../../core/math';
@@ -24,6 +25,8 @@ import { ListScene } from './scene';
 import { playStepSound } from './sound';
 import * as stack from './stack';
 import { createUiState, createWorld, diagramOf, fresh, type World } from './state';
+
+inject();
 
 const ui = createUiState();
 const world: World = createWorld();

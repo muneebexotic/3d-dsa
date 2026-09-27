@@ -2,6 +2,7 @@
 // This file wires the pieces together: the tree, the player, the scene, the
 // narration, the inspector and the controls.
 
+import { inject } from '@vercel/analytics';
 import * as THREE from 'three';
 import { bindHelp, bindKeys, calloutPlacer, mountTransport, placard } from '../../core/controls';
 import { byId } from '../../core/dom';
@@ -31,6 +32,8 @@ import { inspect, legendHTML } from './panels';
 import { buildTransition, lowering, morph, staticPose, type AvlPose, type AvlProgram } from './poses';
 import { AvlScene } from './scene';
 import { playStepSound } from './sound';
+
+inject();
 
 const canvas = byId<HTMLCanvasElement>('stage');
 const scene = new AvlScene(canvas);

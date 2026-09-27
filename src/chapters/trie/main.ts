@@ -2,6 +2,7 @@
 // with words that begin alike sharing a ray. This file wires the pieces together:
 // the recordings, the player, the scene, the panels and the controls.
 
+import { inject } from '@vercel/analytics';
 import { bindHelp, bindKeys, mountTransport, placard } from '../../core/controls';
 import { byId } from '../../core/dom';
 import { Player, readingHold } from '../../core/player';
@@ -32,6 +33,8 @@ import { playStepSound } from './sound';
 import { EXAMPLE, createUiState, freshDicts } from './state';
 import { clean } from './trie';
 import { MAX_LEN, SIZES, type Size } from './words';
+
+inject();
 
 const ui = createUiState();
 const canvas = byId<HTMLCanvasElement>('stage');
