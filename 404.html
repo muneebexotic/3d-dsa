@@ -5,25 +5,27 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Not on the wall · 3D Data Structures</title>
     <meta name="robots" content="noindex" />
-    <meta name="theme-color" content="#ECE6DA" />
+    <meta name="theme-color" content="#ECE6DA" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#272623" media="(prefers-color-scheme: dark)" />
+    <script src="/theme.js"></script>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="/src/site/not-found.css" />
   </head>
   <body>
     <main class="lost">
       <svg viewBox="0 0 200 150" width="200" height="150" aria-hidden="true">
-        <circle cx="100" cy="10" r="4" fill="none" stroke="#1B1A17" stroke-width="1.4" />
+        <circle cx="100" cy="10" r="4" fill="none" stroke="currentColor" stroke-width="1.4" />
         <path
           d="M100 14v40M100 54 62 62M62 62v10"
-          stroke="#1B1A17"
+          stroke="currentColor"
           stroke-width="1.6"
           stroke-linecap="round"
           fill="none"
         />
-        <circle cx="62" cy="88" r="16" fill="#1B1A17" />
-        <path d="M100 54l26 6" stroke="#1B1A17" stroke-width="1.6" stroke-linecap="round" stroke-dasharray="3 4" />
-        <ellipse cx="150" cy="138" rx="18" ry="5" fill="rgba(27,26,23,.1)" />
-        <circle cx="150" cy="120" r="16" fill="#E8A817" />
+        <circle cx="62" cy="88" r="16" fill="currentColor" />
+        <path d="M100 54l26 6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-dasharray="3 4" />
+        <ellipse cx="150" cy="138" rx="18" ry="5" fill="currentColor" fill-opacity=".1" />
+        <circle cx="150" cy="120" r="16" style="fill: var(--yellow)" />
       </svg>
       <div class="eyebrow">404 · Not on the wall</div>
       <h1>This piece has fallen off the mobile.</h1>

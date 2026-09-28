@@ -7,6 +7,7 @@ import { drawGlyphs, numeralHeight } from '../../core/glyphs';
 import { clamp01, lerp } from '../../core/math';
 import { REDUCED } from '../../core/prefs';
 import { DEG, createStage, plasterTexture, type FrameBox, type Stage } from '../../core/stage';
+import { nightCSS, setLinear, tint, tinted, watchTheme } from '../../core/theme';
 import type { Side } from './engine';
 import { CEIL, R, STEM, STUB, VR, WALL_Z } from './layout';
 import type { AvlPose, PoseLink } from './poses';
@@ -14,8 +15,10 @@ import type { AvlPose, PoseLink } from './poses';
 const INK = 0x1b1a17,
   COBALT = 0x2346a8,
   RED = 0xd1361e;
-const C_INK = new THREE.Color(INK),
-  C_COB = new THREE.Color(COBALT);
+// shared by every wire and ring, and kept in the colour theme
+const C_INK = tint(new THREE.Color(), INK),
+  C_COB = tint(new THREE.Color(), COBALT),
+  C_RED = tint(new THREE.Color(), RED);
 const MAXR = 900,
   MAXJ = 500,
   MAXH = 200,
@@ -97,12 +100,10 @@ export class AvlScene {
   private readonly hooks: THREE.InstancedMesh;
   private readonly loops: THREE.InstancedMesh;
   private readonly clipMeshes: THREE.InstancedMesh;
-  private readonly cobaltBasic = new THREE.MeshBasicMaterial({
-    color: COBALT,
-    transparent: true,
-    depthWrite: false,
-    toneMapped: false,
-  });
+  private readonly cobaltBasic = tinted(
+    new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false, toneMapped: false }),
+    COBALT,
+  );
   private readonly arcGroup = new THREE.Group();
   private arcBuiltFor = -1;
   private readonly numTex = new Map<number, THREE.CanvasTexture>();
@@ -149,13 +150,13 @@ export class AvlScene {
     for (const bf of [-2, -1, 0, 1, 2]) this.badgeTex[bf] = this.makeBadge(bf);
 
     this.visitor = this.makeDisc(0, VR / R);
-    this.visitor.discMat.color.setHex(COBALT);
-    this.visitor.faceMat.color.setHex(0xffffff);
+    tint(this.visitor.discMat.color, COBALT);
+    tint(this.visitor.faceMat.color, 0xffffff);
     this.visitor.group.visible = false;
 
     this.clipMeshes = new THREE.InstancedMesh(
       new THREE.BoxGeometry(0.15, 0.25, 0.09),
-      new THREE.MeshStandardMaterial({ color: COBALT, roughness: 0.4, metalness: 0.2 }),
+      tinted(new THREE.MeshStandardMaterial({ roughness: 0.4, metalness: 0.2 }), COBALT),
       MAXC,
     );
     this.clipMeshes.count = 0;
@@ -199,6 +200,23 @@ export class AvlScene {
     c.height = H;
     const g = c.getContext('2d');
     if (!g) throw new Error('Canvas 2D is not available');
+    const t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.anisotropy = 4;
+    watchTheme(dark => {
+      g.clearRect(0, 0, W, H);
+      this.paintBadge(g, W, H, bf, dark ? nightCSS : (css: string) => css);
+      t.needsUpdate = true;
+    });
+    return t;
+  }
+  private paintBadge(
+    g: CanvasRenderingContext2D,
+    W: number,
+    H: number,
+    bf: number,
+    paint: (css: string) => string,
+  ): void {
     const a = Math.abs(bf),
       r = H / 2 - 6;
     g.beginPath();
@@ -208,17 +226,13 @@ export class AvlScene {
     g.lineTo(6 + r, H - 6);
     g.arc(6 + r, H / 2, r, Math.PI / 2, Math.PI * 1.5);
     g.closePath();
-    g.fillStyle = a >= 2 ? '#D1361E' : '#F8F5EE';
+    g.fillStyle = paint(a >= 2 ? '#D1361E' : '#F8F5EE');
     g.fill();
     g.lineWidth = a === 1 ? 7 : 5;
-    g.strokeStyle = a >= 2 ? '#D1361E' : a === 1 ? '#C48A0A' : 'rgba(27,26,23,0.4)';
+    g.strokeStyle = paint(a >= 2 ? '#D1361E' : a === 1 ? '#C48A0A' : 'rgba(27,26,23,0.4)');
     g.stroke();
-    g.strokeStyle = a >= 2 ? '#FFFFFF' : '#1B1A17';
+    g.strokeStyle = paint(a >= 2 ? '#FFFFFF' : '#1B1A17');
     drawGlyphs(g, bf > 0 ? `+${bf}` : bf < 0 ? `-${-bf}` : '0', W / 2, H / 2, 58, 15);
-    const t = new THREE.CanvasTexture(c);
-    t.colorSpace = THREE.SRGBColorSpace;
-    t.anisotropy = 4;
-    return t;
   }
 
   /* ---------- discs ---------- */
@@ -226,7 +240,6 @@ export class AvlScene {
   private makeDisc(v: number, radiusScale = 1): Disc {
     const group = new THREE.Group();
     const discMat = new THREE.MeshStandardMaterial({
-      color: INK,
       roughness: 0.42,
       metalness: 0.05,
       envMapIntensity: 0.55,
@@ -253,19 +266,21 @@ export class AvlScene {
     const d = this.makeDisc(v);
     d.disc.userData.id = id;
     this.pickables.push(d.disc);
-    const ringMat = (hex: number) =>
-      new THREE.MeshBasicMaterial({
-        color: hex,
+    const ringMat = (color: THREE.Color) => {
+      const m = new THREE.MeshBasicMaterial({
         transparent: true,
         opacity: 0,
         depthWrite: false,
         toneMapped: false,
         side: THREE.DoubleSide,
       });
-    const ringC = new THREE.Mesh(this.ringCGeo, ringMat(COBALT));
-    const ringR = new THREE.Mesh(this.ringRGeo, ringMat(RED));
-    const pulse = new THREE.Mesh(this.ringRGeo, ringMat(RED));
-    const ringS = new THREE.Mesh(this.ringSGeo, ringMat(INK));
+      m.color = color; // shared, not copied: a disc that is freed leaves nothing behind watching the theme
+      return m;
+    };
+    const ringC = new THREE.Mesh(this.ringCGeo, ringMat(C_COB));
+    const ringR = new THREE.Mesh(this.ringRGeo, ringMat(C_RED));
+    const pulse = new THREE.Mesh(this.ringRGeo, ringMat(C_RED));
+    const ringS = new THREE.Mesh(this.ringSGeo, ringMat(C_INK));
     const badgeMat = new THREE.MeshBasicMaterial({
       map: this.badgeTex[0],
       transparent: true,
@@ -451,8 +466,8 @@ export class AvlScene {
       vis.group.position.set(x, n.y, n.z);
       vis.group.rotation.set(0, Math.atan2(camera.position.x - x, camera.position.z - n.z), 0);
       vis.group.scale.setScalar(n.s);
-      vis.discMat.color.setRGB(n.fr, n.fg, n.fb);
-      vis.faceMat.color.setRGB(n.nr, n.ng, n.nb);
+      setLinear(vis.discMat.color, n.fr, n.fg, n.fb);
+      setLinear(vis.faceMat.color, n.nr, n.ng, n.nb);
       const fading = n.a < 0.999;
       if (vis.discMat.transparent !== fading) {
         vis.discMat.transparent = fading;

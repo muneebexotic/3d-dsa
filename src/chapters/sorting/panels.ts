@@ -5,6 +5,7 @@
 
 import { glyphSVG } from '../../core/glyphs';
 import { plural } from '../../core/math';
+import { isDark } from '../../core/theme';
 import { LISTINGS } from './code';
 import type { Mode, Recording, Step } from './diagram';
 import { COL, dye, glyphOn, hexOf, shade } from './palette';
@@ -23,7 +24,7 @@ export function discSVG(label: string, v: number, top: number, size = 26): strin
   const r = size / 2,
     t = shade(v, top);
   const gh = label.length > 1 ? size * 0.34 : size * 0.44;
-  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" aria-hidden="true"><circle cx="${r}" cy="${r}" r="${r - 1}" fill="${hexOf(dye(t))}"/>${glyphSVG(label, r, r, gh, hexOf(glyphOn(t)), 15)}</svg>`;
+  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" aria-hidden="true"><circle cx="${r}" cy="${r}" r="${r - 1}" fill="${hexOf(dye(t))}"/>${glyphSVG(label, r, r, gh, hexOf(glyphOn(t, isDark())), 15)}</svg>`;
 }
 
 /* ---------------- code ---------------- */

@@ -47,6 +47,17 @@ test('the chapter menu navigates', async ({ page }) => {
   await waitForChapter(page, '__graph');
 });
 
+test('the chapter menu holds the dark mode switch', async ({ page }) => {
+  await page.goto('/avl/');
+  await waitForChapter(page, '__avl');
+  await page.getByRole('button', { name: 'Chapters' }).tap();
+  const toggle = page.locator('#navMenu').getByRole('button', { name: 'Dark mode' });
+  await expect(toggle).toHaveAttribute('aria-pressed', 'false');
+  await toggle.tap();
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  await expect(toggle).toHaveAttribute('aria-pressed', 'true');
+});
+
 test('inserting a value works from the bottom sheet', async ({ page }) => {
   await page.goto('/avl/');
   await waitForChapter(page, '__avl');
