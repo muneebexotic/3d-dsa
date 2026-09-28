@@ -1,12 +1,14 @@
 // Common Three.js setup for every chapter: renderer, scene, camera and orbit
 // controls, gallery lighting, the plaster texture, and a framer that keeps the
-// piece inside the free part of the screen.
+// piece inside the free part of the screen. The room (background, haze, plaster,
+// the light bounced off the floor) follows the colour theme.
 
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { lerp } from './math';
 import { REDUCED } from './prefs';
+import { nightCSS, tint, watchTheme } from './theme';
 
 export const DEG = Math.PI / 180;
 
@@ -14,7 +16,10 @@ type Vec3Tuple = [number, number, number];
 
 export interface StageOptions {
   canvas: HTMLCanvasElement;
+  /** The room's colour by day, 0xRRGGBB. */
   background?: number;
+  /** Haze in the room's colour, from this near distance to this far one. */
+  fog?: [number, number];
   envIntensity?: number;
   cameraPos?: Vec3Tuple;
   target?: Vec3Tuple;
@@ -44,6 +49,7 @@ export interface Stage {
 export function createStage({
   canvas,
   background = 0xddd4c3,
+  fog,
   envIntensity = 0.3,
   cameraPos = [-4, -2, 34],
   target = [0, -2, 0],
@@ -69,7 +75,8 @@ export function createStage({
   renderer.toneMappingExposure = 1.0;
 
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(background);
+  scene.background = tint(new THREE.Color(), background);
+  if (fog) scene.fog = new THREE.Fog(tint(new THREE.Color(), background), fog[0], fog[1]);
   const pmrem = new THREE.PMREMGenerator(renderer);
   scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
   scene.environmentIntensity = envIntensity;
@@ -94,6 +101,7 @@ export function createStage({
 
   // a warm key from the upper left casts the shadows; a soft pool follows the piece
   const hemi = new THREE.HemisphereLight(0xffffff, 0xd9d1c3, 0.8);
+  tint(hemi.groundColor, 0xd9d1c3); // what bounces up off the floor
   scene.add(hemi);
   const key = new THREE.DirectionalLight(0xfff6ea, 1.3);
   const KEY_DIR = new THREE.Vector3(...keyDir).normalize();
@@ -104,6 +112,11 @@ export function createStage({
   scene.add(key, key.target);
   const pool = new THREE.SpotLight(0xfff8f0, 0.8, 0, 0.5, 1, 0);
   scene.add(pool, pool.target);
+  // after dark the lamps burn plain white: their warmth, doubled by the plaster's own, would turn a dark room brown
+  watchTheme(dark => {
+    key.color.setHex(dark ? 0xffffff : 0xfff6ea);
+    pool.color.setHex(dark ? 0xffffff : 0xfff8f0);
+  });
 
   const resizers: (() => void)[] = [];
   addEventListener('resize', () => {
@@ -115,7 +128,7 @@ export function createStage({
   return { renderer, scene, camera, controls, hemi, key, pool, KEY_DIR, onResize: f => resizers.push(f) };
 }
 
-/** Seamless plaster: soft mottling plus fine grain. */
+/** Seamless plaster: soft mottling plus fine grain, in `base` by day. Repainted when the theme changes. */
 export function plasterTexture({
   base = '#ECE6DA',
   repeat = [18, 12] as [number, number],
@@ -124,8 +137,31 @@ export function plasterTexture({
   const S = 512,
     c = document.createElement('canvas');
   c.width = c.height = S;
-  const g = c.getContext('2d');
+  // the grain is read back and rewritten each time the theme changes
+  const g = c.getContext('2d', { willReadFrequently: true });
   if (!g) throw new Error('Canvas 2D is not available');
+  const tex = new THREE.CanvasTexture(c);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(...repeat);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
+  watchTheme(dark => {
+    paintPlaster(g, S, dark ? nightCSS(base) : base, seed, dark ? PLASTER_NIGHT : PLASTER_DAY);
+    tex.needsUpdate = true;
+  });
+  return tex;
+}
+
+/** The plaster's mottling and grain. By night they are scaled to the darker base, so the wall stays as quiet as it is by day. */
+interface PlasterGrain {
+  lift: string;
+  shade: string;
+  grain: number;
+}
+const PLASTER_DAY: PlasterGrain = { lift: 'rgba(255,252,245,0.05)', shade: 'rgba(120,100,78,0.022)', grain: 7 };
+const PLASTER_NIGHT: PlasterGrain = { lift: 'rgba(255,250,240,0.012)', shade: 'rgba(0,0,0,0.05)', grain: 4 };
+
+function paintPlaster(g: CanvasRenderingContext2D, S: number, base: string, seed: number, look: PlasterGrain): void {
   g.fillStyle = base;
   g.fillRect(0, 0, S, S);
   const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
@@ -137,7 +173,7 @@ export function plasterTexture({
     for (const ox of [-S, 0, S])
       for (const oy of [-S, 0, S]) {
         const gr = g.createRadialGradient(x + ox, y + oy, 0, x + ox, y + oy, r);
-        gr.addColorStop(0, light ? 'rgba(255,252,245,0.05)' : 'rgba(120,100,78,0.022)');
+        gr.addColorStop(0, light ? look.lift : look.shade);
         gr.addColorStop(1, 'rgba(0,0,0,0)');
         g.fillStyle = gr;
         g.fillRect(x + ox - r, y + oy - r, r * 2, r * 2);
@@ -146,18 +182,12 @@ export function plasterTexture({
   const img = g.getImageData(0, 0, S, S),
     d = img.data;
   for (let i = 0; i < d.length; i += 4) {
-    const n = (rnd() - 0.5) * 7;
+    const n = (rnd() - 0.5) * look.grain;
     d[i] += n;
     d[i + 1] += n;
     d[i + 2] += n;
   }
   g.putImageData(img, 0, 0);
-  const tex = new THREE.CanvasTexture(c);
-  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-  tex.repeat.set(...repeat);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  tex.anisotropy = 4;
-  return tex;
 }
 
 /** A screen rectangle in CSS pixels. */

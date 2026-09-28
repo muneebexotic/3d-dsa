@@ -10,6 +10,7 @@ import { InstancedBatch, WireKit } from '../../core/instances';
 import { LabelBatch, MODE } from '../../core/labels';
 import { clamp01, lerp } from '../../core/math';
 import { createStage, plasterTexture, type FrameBox, type Stage } from '../../core/stage';
+import { tinted } from '../../core/theme';
 import * as Lay from './layout';
 import { MEM_SLOTS, SLOT_BYTES, addrText } from './memory';
 import { COL } from './palette';
@@ -66,6 +67,7 @@ export class ListScene {
     this.stage = createStage({
       canvas,
       background: 0xe2dacb,
+      fog: [120, 300],
       keyDir: [-0.4, 1, 0.55],
       cameraPos: [-3, 12, 22],
       target: [0, 0.6, 0],
@@ -79,7 +81,6 @@ export class ListScene {
       },
     });
     const { scene } = this.stage;
-    scene.fog = new THREE.Fog(0xe2dacb, 120, 300);
     const floor = new THREE.Mesh(
       new THREE.PlaneGeometry(500, 500),
       new THREE.MeshStandardMaterial({
@@ -95,7 +96,7 @@ export class ListScene {
     scene.add(floor);
     this.plinth = new THREE.Mesh(
       new THREE.BoxGeometry(1, 1, 1),
-      new THREE.MeshStandardMaterial({ color: 0xf7f3eb, roughness: 0.88, metalness: 0, envMapIntensity: 0.5 }),
+      tinted(new THREE.MeshStandardMaterial({ roughness: 0.88, metalness: 0, envMapIntensity: 0.5 }), 0xf7f3eb),
     );
     this.plinth.castShadow = true;
     this.plinth.receiveShadow = true;

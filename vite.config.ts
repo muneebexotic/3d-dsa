@@ -63,6 +63,8 @@ export default defineConfig(({ mode }) => {
     test: {
       include: ['tests/unit/**/*.test.ts'],
       environment: 'node',
+      // stylesheets load as their source (the token tests read them) rather than as empty strings
+      css: { include: /\.css\b/ },
     },
   };
 });

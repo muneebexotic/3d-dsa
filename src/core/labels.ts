@@ -1,10 +1,12 @@
 // Labels: every letter, number, pill and ring in one draw call. Wire glyphs live
 // in a small texture atlas; pills and rings are drawn as signed distances, so they
 // stay crisp at any size. Quads face the camera unless drawn flat on the floor.
+// Colours are given as by day and painted in the current theme here.
 
 import * as THREE from 'three';
 import type { RGB } from './color';
 import { GLYPH, glyphLayout, glyphWidth } from './glyphs';
+import { themed } from './theme';
 
 /** Shape modes understood by the shader: text, filled pill, outlined pill, ring (dashed if dashes > 0), soft glow ring. */
 export const MODE = { text: 0, fill: 1, outline: 2, ring: 3, glow: 4 } as const;
@@ -184,7 +186,8 @@ export class LabelBatch {
     const i = this.n++,
       S = this.staging,
       i3 = i * 3,
-      i4 = i * 4;
+      i4 = i * 4,
+      c = themed(col);
     S.iPos[i3] = x;
     S.iPos[i3 + 1] = y;
     S.iPos[i3 + 2] = z;
@@ -196,9 +199,9 @@ export class LabelBatch {
     S.iPar[i4 + 1] = p1;
     S.iPar[i4 + 2] = p2;
     S.iPar[i4 + 3] = p3;
-    S.iCol[i4] = col[0];
-    S.iCol[i4 + 1] = col[1];
-    S.iCol[i4 + 2] = col[2];
+    S.iCol[i4] = c[0];
+    S.iCol[i4 + 1] = c[1];
+    S.iCol[i4 + 2] = c[2];
     S.iCol[i4 + 3] = Math.min(1, a);
     S.iMode[i * 2] = mode;
     S.iMode[i * 2 + 1] = flat;

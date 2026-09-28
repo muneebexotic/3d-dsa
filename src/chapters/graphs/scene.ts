@@ -8,6 +8,7 @@ import { WireKit } from '../../core/instances';
 import { LabelBatch, MODE } from '../../core/labels';
 import { lerp, smooth } from '../../core/math';
 import { createStage, plasterTexture, type FrameBox, type Stage } from '../../core/stage';
+import { tinted } from '../../core/theme';
 import type { AlgoKey, EdgeId, NodeId } from './algorithms';
 import { COL, KNOT, L0, PEG, PH, R, mix3, type RGB } from './palette';
 import type { EdgePose, NetPose, NodePose, ScenePose } from './poses';
@@ -111,6 +112,7 @@ export class GraphScene {
     this.stage = createStage({
       canvas,
       background: 0xe2dacb,
+      fog: [130, 320],
       keyDir: [-0.38, 1, 0.5],
       cameraPos: [-3, 17, 22],
       target: [0, 0, 0],
@@ -124,7 +126,6 @@ export class GraphScene {
       },
     });
     const { scene } = this.stage;
-    scene.fog = new THREE.Fog(0xe2dacb, 130, 320);
     const floor = new THREE.Mesh(
       new THREE.PlaneGeometry(500, 500),
       new THREE.MeshStandardMaterial({
@@ -141,7 +142,7 @@ export class GraphScene {
     this.plinths = [0, 1].map(() => {
       const m = new THREE.Mesh(
         new THREE.BoxGeometry(1, 1, 1),
-        new THREE.MeshStandardMaterial({ color: 0xf7f3eb, roughness: 0.88, metalness: 0, envMapIntensity: 0.5 }),
+        tinted(new THREE.MeshStandardMaterial({ roughness: 0.88, metalness: 0, envMapIntensity: 0.5 }), 0xf7f3eb),
       );
       m.castShadow = true;
       m.receiveShadow = true;
