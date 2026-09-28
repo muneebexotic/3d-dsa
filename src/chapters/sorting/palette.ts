@@ -38,5 +38,9 @@ const hex2 = (x: number) =>
     .padStart(2, '0');
 export const hexOf = (c: RGB): string => `#${hex2(c[0])}${hex2(c[1])}${hex2(c[2])}`.toUpperCase();
 
-/** Numerals on a disc: ink on the pale end, white on the deep end. */
-export const glyphOn = (t: number): RGB => (t < 0.42 ? COL.ink : COL.white);
+/**
+ * Numerals on a disc: ink on the pale end, white on the deep end. After dark the
+ * ramp turns over (see night() in core/color) and every step of it is light enough
+ * for white's dark twin, so numerals are always white there.
+ */
+export const glyphOn = (t: number, dark = false): RGB => (t < 0.42 && !dark ? COL.ink : COL.white);

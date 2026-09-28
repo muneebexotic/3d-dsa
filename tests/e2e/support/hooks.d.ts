@@ -30,6 +30,7 @@ interface GraphHooks {
   settle(): void;
   nodeScreen(j: number, id: number): Screen | null;
   floorScreen(x: number, z: number): Screen | null;
+  roomColour(): string;
 }
 
 interface AvlHooks {

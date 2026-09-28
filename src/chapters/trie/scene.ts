@@ -13,8 +13,9 @@ import { glyphWidth } from '../../core/glyphs';
 import { InstancedBatch, WireKit } from '../../core/instances';
 import { LabelBatch, MODE } from '../../core/labels';
 import { createStage, plasterTexture, type FrameBox, type Stage } from '../../core/stage';
+import { tinted } from '../../core/theme';
 import * as Lay from './layout';
-import { COL } from './palette';
+import { COL, GOLD } from './palette';
 import type { FanPose, Pose } from './poses';
 import { slotOf } from './trie';
 
@@ -60,6 +61,7 @@ export class SunburstScene {
     this.stage = createStage({
       canvas,
       background: 0xe2dacb,
+      fog: [120, 300],
       keyDir: [-0.45, 0.9, 0.85],
       cameraPos: [-3, 5, 26],
       target: [0, 3.2, 0],
@@ -73,7 +75,6 @@ export class SunburstScene {
       },
     });
     const { scene } = this.stage;
-    scene.fog = new THREE.Fog(0xe2dacb, 120, 300);
     const floor = new THREE.Mesh(
       new THREE.PlaneGeometry(600, 600),
       new THREE.MeshStandardMaterial({
@@ -89,7 +90,7 @@ export class SunburstScene {
     scene.add(floor);
     this.plinth = new THREE.Mesh(
       new THREE.BoxGeometry(1, 1, 1),
-      new THREE.MeshStandardMaterial({ color: 0xf7f3eb, roughness: 0.88, metalness: 0, envMapIntensity: 0.5 }),
+      tinted(new THREE.MeshStandardMaterial({ roughness: 0.88, metalness: 0, envMapIntensity: 0.5 }), 0xf7f3eb),
     );
     this.plinth.castShadow = true;
     this.plinth.receiveShadow = true;
@@ -134,13 +135,10 @@ export class SunburstScene {
       g.setIndex(idx);
       const m = new THREE.Mesh(
         g,
-        new THREE.MeshBasicMaterial({
-          color: new THREE.Color().setRGB(COL.gold[0], COL.gold[1], COL.gold[2], THREE.SRGBColorSpace),
-          transparent: true,
-          opacity: 0,
-          depthWrite: false,
-          side: THREE.DoubleSide,
-        }),
+        tinted(
+          new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide }),
+          GOLD,
+        ),
       );
       m.frustumCulled = false;
       m.renderOrder = 2;

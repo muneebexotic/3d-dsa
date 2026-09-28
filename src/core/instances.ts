@@ -1,9 +1,11 @@
 // Instanced wire-work shared by the chapters: rods, balls, cones and camera-facing
 // discs, each kind drawn in one call. A scene calls begin(), adds pieces for the
-// frame, then end(). Nothing is allocated per piece.
+// frame, then end(). Nothing is allocated per piece. Colours are given as by day
+// and painted in the current theme here.
 
 import * as THREE from 'three';
 import type { RGB } from './color';
+import { themed } from './theme';
 
 const UP = new THREE.Vector3(0, 1, 0);
 
@@ -39,7 +41,8 @@ export class InstancedBatch {
   add(matrix: THREE.Matrix4, col: RGB): boolean {
     if (this.n >= this.max) return false;
     this.mesh.setMatrixAt(this.n, matrix);
-    this.c.setRGB(col[0], col[1], col[2], THREE.SRGBColorSpace);
+    const c = themed(col);
+    this.c.setRGB(c[0], c[1], c[2], THREE.SRGBColorSpace);
     this.mesh.setColorAt(this.n, this.c);
     this.n++;
     return true;

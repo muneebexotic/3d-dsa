@@ -19,7 +19,7 @@
   height: 44px;
   border-radius: 10px;
   border: 1px solid var(--line-strong);
-  background: #fff;
+  background: var(--raised);
   padding: 0 12px;
   font: 600 18px var(--sans);
   font-variant-numeric: tabular-nums;
@@ -33,7 +33,7 @@
 #err {
   font-size: 12.5px;
   line-height: 1.35;
-  color: #b02a15;
+  color: var(--red-text);
   margin: -2px 2px 0;
 }
 #err:empty {

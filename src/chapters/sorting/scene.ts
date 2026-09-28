@@ -13,6 +13,7 @@ import { InstancedBatch, WireKit } from '../../core/instances';
 import { LabelBatch, MODE } from '../../core/labels';
 import { smooth } from '../../core/math';
 import { createStage, plasterTexture, type FrameBox, type Stage } from '../../core/stage';
+import { isDark, tinted } from '../../core/theme';
 import * as Lay from './layout';
 import { COL, dye, glyphOn, shade } from './palette';
 import { rowState, type LoomPose, type Pose } from './poses';
@@ -80,6 +81,7 @@ export class LoomScene {
     this.stage = createStage({
       canvas,
       background: 0xe2dacb,
+      fog: [140, 320],
       keyDir: [-0.5, 1, 0.7],
       cameraPos: [-6, 9, 16],
       target: [0, 1.4, -3],
@@ -93,7 +95,6 @@ export class LoomScene {
       },
     });
     const { scene } = this.stage;
-    scene.fog = new THREE.Fog(0xe2dacb, 140, 320);
     const floor = new THREE.Mesh(
       new THREE.PlaneGeometry(600, 600),
       new THREE.MeshStandardMaterial({
@@ -109,7 +110,7 @@ export class LoomScene {
     scene.add(floor);
     this.plinth = new THREE.Mesh(
       new THREE.BoxGeometry(1, 1, 1),
-      new THREE.MeshStandardMaterial({ color: 0xf7f3eb, roughness: 0.88, metalness: 0, envMapIntensity: 0.5 }),
+      tinted(new THREE.MeshStandardMaterial({ roughness: 0.88, metalness: 0, envMapIntensity: 0.5 }), 0xf7f3eb),
     );
     this.plinth.castShadow = true;
     this.plinth.receiveShadow = true;
@@ -533,7 +534,7 @@ export class LoomScene {
         );
       if (rD >= 0.1) {
         const label = String(list[t].v);
-        LB.text(label, x, y, z, r * (label.length > 1 ? 0.78 : 0.95), mix3(glyphOn(tone), fill, dim), show);
+        LB.text(label, x, y, z, r * (label.length > 1 ? 0.78 : 0.95), mix3(glyphOn(tone, isDark()), fill, dim), show);
         if (list[t].twin) LB.text(list[t].twin, x, y, z, r * 0.8, COL.ink, show * (1 - dim * 0.6), r * 1.3, r * 0.55);
       }
     }
