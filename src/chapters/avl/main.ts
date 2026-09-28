@@ -2,6 +2,7 @@
 // This file wires the pieces together: the tree, the player, the scene, the
 // narration, the inspector and the controls.
 
+import '../../core/analytics';
 import * as THREE from 'three';
 import { bindHelp, bindKeys, calloutPlacer, mountTransport, placard } from '../../core/controls';
 import { byId } from '../../core/dom';

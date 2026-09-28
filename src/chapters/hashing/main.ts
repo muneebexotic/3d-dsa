@@ -3,6 +3,7 @@
 // This file wires the pieces together: the tables, the player, the scene, the
 // panels and the controls.
 
+import '../../core/analytics';
 import { bindHelp, bindKeys, calloutPlacer, mountTransport, placard } from '../../core/controls';
 import { byId } from '../../core/dom';
 import { Player, readingHold } from '../../core/player';

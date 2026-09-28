@@ -2,6 +2,7 @@
 // colophon once every work is on the wall), and the header that gains a rule once
 // the page scrolls and holds the dark mode switch.
 
+import '../core/analytics';
 import { byId } from '../core/dom';
 import { bindThemeSwitch } from '../core/theme';
 import { CHAPTERS, LIVE_CHAPTERS, chapterPath, type Chapter } from '../site/chapters';

@@ -2,6 +2,7 @@
 // This file wires the pieces together: the page state, the player, the scene,
 // the panels, the editor and the controls.
 
+import '../../core/analytics';
 import type { Color } from 'three';
 import { bindHelp, bindKeys, calloutPlacer, mountTransport, placard } from '../../core/controls';
 import { byId } from '../../core/dom';
