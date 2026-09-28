@@ -3,6 +3,7 @@
 // the panels, the editor and the controls.
 
 import { inject } from '@vercel/analytics';
+import type { Color } from 'three';
 import { bindHelp, bindKeys, calloutPlacer, mountTransport, placard } from '../../core/controls';
 import { byId } from '../../core/dom';
 import { clamp01, lerp, plural } from '../../core/math';
@@ -533,6 +534,8 @@ exposeTestHooks('__graph', {
   nodeScreen,
   /** Where a point on the plinth floor (y = 0) appears on screen. */
   floorScreen: (x: number, z: number) => scene.toScreen(x, 0, z),
+  /** The room's colour as the scene paints it now, as 'rrggbb'. */
+  roomColour: () => (scene.stage.scene.background as Color).getHexString(),
   currentPose: () => player.pose(),
   setMode(m: AlgoKey | 'race', race?: [AlgoKey, AlgoKey]) {
     if (m === 'race') {

@@ -12,6 +12,7 @@ import { glyphWidth } from '../../core/glyphs';
 import { LabelBatch, MODE } from '../../core/labels';
 import { clamp01, lerp, smooth } from '../../core/math';
 import { createStage, plasterTexture, type FrameBox, type Stage } from '../../core/stage';
+import { tinted } from '../../core/theme';
 import * as Lay from './layout';
 import { COL } from './palette';
 import { PLINTH_Z0, PLINTH_Z1, itemAt, type P3, type Pose, type SlotPose } from './poses';
@@ -57,6 +58,7 @@ export class HeapScene {
     this.stage = createStage({
       canvas,
       background: 0xe2dacb,
+      fog: [120, 300],
       keyDir: [-0.45, 1, 0.85],
       cameraPos: [-2, 8, 24],
       target: [0, 2.4, 1],
@@ -70,7 +72,6 @@ export class HeapScene {
       },
     });
     const { scene } = this.stage;
-    scene.fog = new THREE.Fog(0xe2dacb, 120, 300);
     const floor = new THREE.Mesh(
       new THREE.PlaneGeometry(500, 500),
       new THREE.MeshStandardMaterial({
@@ -86,7 +87,7 @@ export class HeapScene {
     scene.add(floor);
     this.plinth = new THREE.Mesh(
       new THREE.BoxGeometry(1, 1, 1),
-      new THREE.MeshStandardMaterial({ color: 0xf7f3eb, roughness: 0.88, metalness: 0, envMapIntensity: 0.5 }),
+      tinted(new THREE.MeshStandardMaterial({ roughness: 0.88, metalness: 0, envMapIntensity: 0.5 }), 0xf7f3eb),
     );
     this.plinth.castShadow = true;
     this.plinth.receiveShadow = true;

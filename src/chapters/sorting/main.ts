@@ -9,6 +9,7 @@ import { Player, readingHold } from '../../core/player';
 import { REDUCED, isPhone } from '../../core/prefs';
 import { bindSoundToggle, sound } from '../../core/sound';
 import { createFramer } from '../../core/stage';
+import { watchTheme } from '../../core/theme';
 import { exposeTestHooks } from '../../core/test-hooks';
 import { mountNav } from '../../site/nav';
 import type { Recording, Step } from './diagram';
@@ -159,6 +160,8 @@ function closeInspector(quiet = false): void {
   if (!quiet) measureFree();
 }
 byId('insClose').addEventListener('click', () => closeInspector());
+// the followed thread's disc picks its numeral for the theme
+watchTheme(updateInspector);
 
 /* ---------------- controls ---------------- */
 

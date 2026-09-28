@@ -18,6 +18,8 @@ An exhibition of algorithms in motion, in seven works. Each chapter turns one da
 
 Taken in order, the seven go from a tree that balances numbers to a tree that spells words.
 
+After dark, the gallery goes dark too: the site follows your system's dark mode, and the moon or sun at the end of the chapter pill (in the menu on a phone, and in the landing page's header) switches by hand. Every piece, panel and drawing changes over as it runs, and your choice is kept from page to page.
+
 ## Getting started
 
 You need Node 22.12 or later (`nvm use` reads `.nvmrc`).
@@ -54,13 +56,14 @@ hashing/index.html          No. 4, Hash Clock (markup only)
 heap/index.html             No. 5, Heap Pyramid (markup only)
 sorting/index.html          No. 6, Sorting Loom (markup only)
 trie/index.html             No. 7, Prefix Sunburst (markup only)
-public/                     files served as-is (favicon)
+public/                     files served as-is (favicon, and theme.js, which sets the
+                            colour theme before a page first paints)
 src/
   core/                     shared by every chapter: step player, Three.js stage,
                             transport and narration, wire glyphs, label batch,
-                            instanced wire pieces, colours, sound
+                            instanced wire pieces, colours and dark mode, sound
   site/chapters.ts          the chapter catalogue: nav, build pages and sitemap read it
-  site/nav.ts               the navigation every chapter shares
+  site/nav.ts               the navigation every chapter shares, with the dark mode switch
   styles/tokens.css         design tokens and the shared gallery UI
   home/                     the landing page's code, drawings and styles
   chapters/avl/             AVL Mobile: engine, layout, poses, scene, panels, main

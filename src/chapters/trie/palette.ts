@@ -6,12 +6,15 @@
 
 import { TONE, rgb } from '../../core/color';
 
+/** Gold, 0xRRGGBB, for the scene's wedge material. */
+export const GOLD = 0xe8a817;
+
 export const COL = {
   ...TONE,
   plinth: rgb(0xf7f3eb),
   back: rgb(0xe2dacb),
   /** Word marks and the centre. */
-  gold: rgb(0xe8a817),
+  gold: rgb(GOLD),
   goldDeep: rgb(0xb07b08),
   /** The rings and the baseline, drawn faint like a protractor's. */
   guide: rgb(0xc9c0b0),

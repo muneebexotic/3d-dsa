@@ -1,9 +1,10 @@
 // The landing page: the hero drawings, the catalogue of chapters (closed by a
 // colophon once every work is on the wall), and the header that gains a rule once
-// the page scrolls.
+// the page scrolls and holds the dark mode switch.
 
 import { inject } from '@vercel/analytics';
 import { byId } from '../core/dom';
+import { bindThemeSwitch } from '../core/theme';
 import { CHAPTERS, LIVE_CHAPTERS, chapterPath, type Chapter } from '../site/chapters';
 import {
   THUMBNAILS,
@@ -49,6 +50,8 @@ drawClock(byId<SVGSVGElement>('artClock'), { W: 320, H: 250 });
 drawPyramid(byId<SVGSVGElement>('artPyramid'), { W: 320, H: 250 });
 drawLoom(byId<SVGSVGElement>('artLoom'), { W: 320, H: 250 });
 drawSunburst(byId<SVGSVGElement>('artSunburst'), { W: 320, H: 250 });
+
+bindThemeSwitch(byId('bTheme'));
 
 const top = byId('top');
 addEventListener('scroll', () => top.classList.toggle('scrolled', scrollY > 8), { passive: true });
