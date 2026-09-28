@@ -2,6 +2,7 @@
 // with words that begin alike sharing a ray. This file wires the pieces together:
 // the recordings, the player, the scene, the panels and the controls.
 
+import '../../core/analytics';
 import { bindHelp, bindKeys, mountTransport, placard } from '../../core/controls';
 import { byId } from '../../core/dom';
 import { Player, readingHold } from '../../core/player';
