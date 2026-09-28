@@ -2,7 +2,7 @@
 // cloth, one row per comparison. This file wires the pieces together: the sorts,
 // the player, the scene, the panels and the controls.
 
-import { inject } from '@vercel/analytics';
+import '../../core/analytics';
 import { bindHelp, bindKeys, mountTransport, placard } from '../../core/controls';
 import { byId } from '../../core/dom';
 import { Player, readingHold } from '../../core/player';
@@ -34,8 +34,6 @@ import { playStepSound } from './sound';
 import { INPUT_NAMES, threadsOf, type InputKind } from './threads';
 import { SORTS, type SortKey } from './sorts';
 import { START, createUiState, threadsFor } from './state';
-
-inject();
 
 const ui = createUiState();
 let threads = threadsFor(ui);

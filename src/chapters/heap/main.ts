@@ -3,7 +3,7 @@
 // wires the pieces together: the heap, the player, the scene, the panels and the
 // controls.
 
-import { inject } from '@vercel/analytics';
+import '../../core/analytics';
 import { bindHelp, bindKeys, calloutPlacer, mountTransport, placard } from '../../core/controls';
 import { byId } from '../../core/dom';
 import { Player, readingHold } from '../../core/player';
@@ -22,8 +22,6 @@ import { makeProgram, restAt, type HeapProgram, type Pose } from './poses';
 import { HeapScene } from './scene';
 import { playStepSound } from './sound';
 import { BUILD_SIZE, START_KEYS, createUiState, diagramOf, freshWorld } from './state';
-
-inject();
 
 const ui = createUiState();
 let world: ops.World = freshWorld();

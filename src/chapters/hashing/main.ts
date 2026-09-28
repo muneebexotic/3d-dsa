@@ -3,7 +3,7 @@
 // This file wires the pieces together: the tables, the player, the scene, the
 // panels and the controls.
 
-import { inject } from '@vercel/analytics';
+import '../../core/analytics';
 import { bindHelp, bindKeys, calloutPlacer, mountTransport, placard } from '../../core/controls';
 import { byId } from '../../core/dom';
 import { Player, readingHold } from '../../core/player';
@@ -23,8 +23,6 @@ import { HashScene } from './scene';
 import { playStepSound } from './sound';
 import { START_KEYS, createUiState, createWorld, diagramOf, fresh, type World } from './state';
 import { MIN_SIZE, type Strategy } from './table';
-
-inject();
 
 const ui = createUiState();
 const world: World = createWorld();

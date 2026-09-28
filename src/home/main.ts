@@ -2,7 +2,7 @@
 // colophon once every work is on the wall), and the header that gains a rule once
 // the page scrolls and holds the dark mode switch.
 
-import { inject } from '@vercel/analytics';
+import '../core/analytics';
 import { byId } from '../core/dom';
 import { bindThemeSwitch } from '../core/theme';
 import { CHAPTERS, LIVE_CHAPTERS, chapterPath, type Chapter } from '../site/chapters';
@@ -17,8 +17,6 @@ import {
   drawPyramid,
   drawSunburst,
 } from './art';
-
-inject();
 
 function card(c: Chapter): string {
   const body = `<div class="thumb"><svg data-t="${c.slug}" viewBox="${c.live ? '0 0 480 220' : '0 0 320 200'}" aria-hidden="true"></svg></div>
